@@ -40,6 +40,8 @@ function hintForError(error) {
     case "MUTATION_REQUIRES_STANDARD_MODE":
     case "POLICY_DENIED":
       return "Read-only mode is active. Set UVCS_MCP_MODE=standard only when write operations are intended.";
+    case "REPOSITORY_NOT_ALLOWED":
+      return "Check UVCS_ALLOWED_REPOS or point UVCS_WORKSPACE to an allowed repository workspace.";
     case "PROCESS_SPAWN_FAILED":
       return "Check that cm is installed, available in PATH, or set UVCS_CM_PATH.";
     case "CM_COMMAND_FAILED":

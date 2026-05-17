@@ -21,6 +21,21 @@ export function assertWorkspaceAllowed(config) {
   }
 }
 
+export function assertRepoAllowed(config, workspaceInfo = {}) {
+  if (!config.allowedRepos || config.allowedRepos.length === 0) return;
+
+  const candidates = workspaceRepoCandidates(workspaceInfo).map(normalizeRepo);
+  const allowed = config.allowedRepos.map(normalizeRepo);
+  const matched = candidates.some((candidate) => allowed.includes(candidate));
+  if (!matched) {
+    throw new PolicyError("Repository is not allowed by UVCS_ALLOWED_REPOS", {
+      code: "REPOSITORY_NOT_ALLOWED",
+      allowedRepos: config.allowedRepos,
+      detected: candidates
+    });
+  }
+}
+
 export function assertStandardMode(config) {
   if (config.mode !== "standard") {
     throw new PolicyError("This tool requires UVCS_MCP_MODE=standard");
@@ -70,4 +85,19 @@ export function consumeConfirmToken({ token, action }) {
 
 function normalizePath(input) {
   return path.resolve(input).toLowerCase();
+}
+
+function normalizeRepo(input) {
+  return String(input ?? "").trim().toLowerCase();
+}
+
+function workspaceRepoCandidates(info) {
+  const entries = Object.entries(info ?? {});
+  const values = entries.map(([, value]) => String(value ?? "").trim()).filter(Boolean);
+  const direct = values.filter((value) => value.includes("@"));
+  const byKey = Object.fromEntries(entries.map(([key, value]) => [key.toLowerCase(), String(value ?? "").trim()]));
+  const repo = byKey.repository || byKey.repo || byKey.name || byKey.reponame;
+  const server = byKey.server || byKey.repositoryserver || byKey.servername;
+  const combined = repo && server ? [`${repo}@${server}`] : [];
+  return [...direct, ...combined].filter(Boolean);
 }

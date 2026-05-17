@@ -19,8 +19,8 @@ Use this MCP as a safe SCM assistant for Plastic SCM / Unity Version Control sou
 ## Write Operations
 
 - Do not run write tools unless the user asked for the operation.
-- `uvcs_update_workspace` requires `UVCS_MCP_MODE=standard`.
-- Add, branch create, label create, switch, merge, and checkin must use their `*_prepare` tool followed by the matching `*_confirm` tool.
+- Update, add, branch create, label create, switch, merge, and checkin must use their `*_prepare` tool followed by the matching `*_confirm` tool.
+- Never call any `*_confirm` tool unless the user explicitly approved the exact operation in the current conversation.
 - Never attempt repository deletion, repository rename, arbitrary shell commands, or raw `cm` execution.
 
 ## Communication

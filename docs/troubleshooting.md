@@ -76,6 +76,18 @@ uvcs_checkin_confirm
 
 This is intentional. `readonly` is the default mode for safer first-time installs.
 
+## Repository is not allowed
+
+If `UVCS_ALLOWED_REPOS` is set, the workspace repository/server identity must match one of the configured entries.
+
+Example:
+
+```text
+UVCS_ALLOWED_REPOS=pas-Kodeks@SRV-IAN-N:8087
+```
+
+Run `uvcs_doctor` and check the detected workspace file fields. If the workspace is correct, add the detected repo identity to `UVCS_ALLOWED_REPOS`. If it is not correct, point `UVCS_WORKSPACE` to the intended checkout.
+
 ## MCP client does not see `uvcs_*` tools
 
 Check the generated client config:
@@ -128,4 +140,3 @@ If a command behaves differently on a new Plastic SCM / Unity Version Control ve
 - sanitized `uvcs_doctor` output;
 - the failing `uvcs_*` tool name;
 - expected result and actual result.
-

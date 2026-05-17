@@ -24,3 +24,4 @@ UVCS_MCP_MODE=standard
 
 Critical write operations use prepare/confirm tokens.
 
+When configured, `UVCS_ALLOWED_WORKSPACES` and `UVCS_ALLOWED_REPOS` restrict the server to approved local workspace paths and repository/server identities.

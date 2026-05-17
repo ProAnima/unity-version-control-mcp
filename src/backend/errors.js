@@ -20,9 +20,10 @@ export class CmCommandError extends UvcsError {
 
 export class PolicyError extends UvcsError {
   constructor(message, details) {
+    const { code = "POLICY_DENIED", ...rest } = details ?? {};
     super(message, {
-      code: "POLICY_DENIED",
-      details
+      code,
+      details: Object.keys(rest).length > 0 ? rest : undefined
     });
     this.name = "PolicyError";
   }

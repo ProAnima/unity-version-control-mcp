@@ -10,6 +10,7 @@ Initial alpha release.
 - Read tools for doctor, workspace status, pending changes, branch info, locks, file diff, and Unity `.meta` diagnostics.
 - Style tools for branch names, checkin messages, and release planning from `.uvcs-mcp/style.json`.
 - Changeset analytics tool for date, branch, owner, and comment review windows.
+- Repository allowlist enforcement through `UVCS_ALLOWED_REPOS`.
 - Prepare/confirm write tools for add, branch create, label create, workspace switch, merge, update, and checkin.
 - Local git checkout installer via `uvcs-mcp init-local`.
 - Client config generation for Cursor, Codex, Claude Desktop, Claude Code, OpenCode, Antigravity, Kiro, and Windsurf.

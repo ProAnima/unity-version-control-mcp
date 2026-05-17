@@ -25,6 +25,7 @@ test("mcp server lists uvcs tools", async () => {
   assert.equal(toolNames.includes("uvcs_name_preview"), true);
   assert.equal(toolNames.includes("uvcs_release_plan"), true);
   assert.equal(toolNames.includes("uvcs_changeset_analytics"), true);
+  assert.equal(toolNames.includes("uvcs_update_workspace_prepare"), true);
   assert.equal(toolNames.includes("uvcs_checkin_prepare"), true);
   assert.equal(toolNames.includes("uvcs_branch_create_prepare"), true);
   assert.equal(toolNames.includes("uvcs_label_create_prepare"), true);

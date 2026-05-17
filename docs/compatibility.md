@@ -24,7 +24,7 @@ The MCP server is server-location agnostic: it works with a workspace that is al
 | current branch | `cm status` | The first status line contains current branch/workspace context; `cm branch` without a subcommand is not portable across Plastic versions. |
 | locks | `cm lock list --machinereadable` | Falls back to `cm lock list`. |
 | file diff | `cm diff <file>` | Path is constrained to `UVCS_WORKSPACE`. |
-| update | `cm update --noinput --machinereadable` | Requires `UVCS_MCP_MODE=standard`; `--noinput` prevents interactive hangs. |
+| update | `cm update --noinput --machinereadable` | Requires prepare/confirm and `standard` mode; `--noinput` prevents interactive hangs. |
 | checkin | `cm checkin -c=<message> --applychanged --machinereadable` | Requires prepare/confirm and `standard` mode; `--applychanged` includes detected modified items. |
 
 The server does not expose arbitrary `cm` commands.

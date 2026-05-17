@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import {
   assertRelativeWorkspacePath,
+  assertRepoAllowed,
   assertStandardMode,
   consumeConfirmToken,
   createConfirmToken
@@ -15,6 +16,18 @@ test("relative workspace paths cannot escape workspace", () => {
 
   assert.equal(assertRelativeWorkspacePath(config, "Assets/Foo.asset"), path.join("Assets", "Foo.asset"));
   assert.throws(() => assertRelativeWorkspacePath(config, "../outside.txt"), /inside UVCS_WORKSPACE/);
+});
+
+test("allowed repo guard accepts repository and server from workspace info", () => {
+  assert.doesNotThrow(() => assertRepoAllowed(
+    { allowedRepos: ["pas-Kodeks@SRV-IAN-N:8087"] },
+    { repository: "pas-Kodeks", server: "SRV-IAN-N:8087" }
+  ));
+
+  assert.throws(() => assertRepoAllowed(
+    { allowedRepos: ["other@server:8087"] },
+    { repository: "pas-Kodeks", server: "SRV-IAN-N:8087" }
+  ), /UVCS_ALLOWED_REPOS/);
 });
 
 test("standard mode guard rejects readonly", () => {

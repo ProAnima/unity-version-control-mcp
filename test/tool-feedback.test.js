@@ -25,3 +25,11 @@ test("tool feedback guides invalid checkin messages", () => {
 
   assert.match(payload.hint, /non-empty/);
 });
+
+test("tool feedback guides repository allowlist failures", () => {
+  const payload = formatToolError(new UvcsError("repo denied", {
+    code: "REPOSITORY_NOT_ALLOWED"
+  }));
+
+  assert.match(payload.hint, /UVCS_ALLOWED_REPOS/);
+});

@@ -13,10 +13,10 @@ Common fixes:
 - log in with the official Plastic SCM / Unity Version Control client;
 - restart the MCP client after config changes;
 - set `UVCS_MCP_MODE=standard` for guarded write tools.
+- set `UVCS_ALLOWED_REPOS` only to repository/server identities that should be allowed.
 
 On Windows, if terminal output looks broken:
 
 ```bat
 chcp 65001
 ```
-

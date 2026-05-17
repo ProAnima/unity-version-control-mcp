@@ -39,6 +39,7 @@ UVCS MCP is designed as a constrained source-control bridge:
 - no raw `cm api` server startup;
 - write tools are gated by `UVCS_MCP_MODE=standard`;
 - critical write tools use prepare/confirm tokens;
+- workspace and repository allowlists are enforced when configured;
 - file paths are constrained to `UVCS_WORKSPACE`.
 
 See [docs/security.md](docs/security.md) for the operational model.
@@ -46,4 +47,3 @@ See [docs/security.md](docs/security.md) for the operational model.
 ## Disclosure
 
 Maintainers will acknowledge valid reports as soon as practical, investigate the issue, and publish a fix or mitigation before public disclosure when possible.
-

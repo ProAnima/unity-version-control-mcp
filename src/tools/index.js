@@ -1,5 +1,6 @@
 import {
   assertRelativeWorkspacePath,
+  assertRepoAllowed,
   assertStandardMode,
   assertWorkspaceAllowed,
   consumeConfirmToken,
@@ -20,27 +21,27 @@ export function createTools({ config, backend }) {
   const definitions = [
     tool("uvcs_doctor", "Check cm, workspace, and UVCS MCP configuration.", {}, async () => runDoctorService(config, backend)),
     tool("uvcs_workspace_status", "Return concise workspace status.", {}, async () => {
-      assertWorkspaceAllowed(config);
+      await assertWorkspacePolicy(config, backend);
       return await backend.status();
     }),
     tool("uvcs_pending_changes", "Return full pending changes from cm status.", {}, async () => {
-      assertWorkspaceAllowed(config);
+      await assertWorkspacePolicy(config, backend);
       return await backend.pendingChanges();
     }),
     tool("uvcs_branch_info", "Return current branch information.", {}, async () => {
-      assertWorkspaceAllowed(config);
+      await assertWorkspacePolicy(config, backend);
       return await backend.branchInfo();
     }),
     tool("uvcs_locks", "List workspace/server locks visible to cm.", {}, async () => {
-      assertWorkspaceAllowed(config);
+      await assertWorkspacePolicy(config, backend);
       return await backend.locks();
     }),
     tool("uvcs_unity_meta_diagnostics", "Detect common Unity asset/.meta mismatches in the workspace.", {}, async () => {
-      assertWorkspaceAllowed(config);
+      await assertWorkspacePolicy(config, backend);
       return await unityMetaDiagnostics(config.workspace);
     }),
     tool("uvcs_style_rules", "Return workspace naming and release style rules.", {}, async () => {
-      assertWorkspaceAllowed(config);
+      await assertWorkspacePolicy(config, backend);
       return await loadStyleConfig(config.workspace);
     }),
     tool(
@@ -70,7 +71,7 @@ export function createTools({ config, backend }) {
         }
       },
       async ({ kind, type, title, summary, baseBranch }) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         const { style, source, path } = await loadStyleConfig(config.workspace);
         if (kind === "branch") {
           return {
@@ -107,7 +108,7 @@ export function createTools({ config, backend }) {
         }
       },
       async ({ releaseType, currentVersion }) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         return await createReleasePlan({ workspace: config.workspace, releaseType, currentVersion });
       },
       ["releaseType"]
@@ -122,16 +123,28 @@ export function createTools({ config, backend }) {
         }
       },
       async ({ filePath }) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         const safePath = assertRelativeWorkspacePath(config, filePath);
         return await backend.diffFile(safePath);
       },
       ["filePath"]
     ),
-    tool("uvcs_update_workspace", "Update the workspace. Requires standard mode.", {}, async () => {
-      assertWorkspaceAllowed(config);
-      assertStandardMode(config);
-      return await backend.update();
+    ...prepareConfirmTool({
+      config,
+      backend,
+      name: "uvcs_update_workspace",
+      description: "Update the workspace. Requires prepare/confirm.",
+      properties: {},
+      required: [],
+      action: "update_workspace",
+      confirmPhrase: "confirm uvcs update",
+      prepare: async () => {
+        await assertWorkspacePolicy(config, backend);
+        assertStandardMode(config);
+        const branchInfo = await backend.branchInfo();
+        return { branchLine: branchInfo.branchLine ?? "" };
+      },
+      confirm: async () => await backend.update()
     }),
     tool(
       "uvcs_changeset_analytics",
@@ -163,12 +176,13 @@ export function createTools({ config, backend }) {
         }
       },
       async (args) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         return await changesetAnalytics({ backend, ...args });
       }
     ),
     ...prepareConfirmTool({
       config,
+      backend,
       name: "uvcs_add",
       description: "Add a path to Plastic SCM / UVCS version control recursively. Requires prepare/confirm.",
       properties: {
@@ -181,7 +195,7 @@ export function createTools({ config, backend }) {
       action: "add",
       confirmPhrase: "confirm uvcs add",
       prepare: async ({ itemPath }) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         assertStandardMode(config);
         const safePath = assertRelativeWorkspacePath(config, itemPath);
         return { itemPath: safePath };
@@ -190,6 +204,7 @@ export function createTools({ config, backend }) {
     }),
     ...prepareConfirmTool({
       config,
+      backend,
       name: "uvcs_branch_create",
       description: "Create a Plastic SCM / UVCS branch from a changeset or label. Requires prepare/confirm.",
       properties: {
@@ -214,7 +229,7 @@ export function createTools({ config, backend }) {
       action: "branch_create",
       confirmPhrase: "confirm uvcs branch create",
       prepare: async ({ branch, fromChangeset, fromLabel, comment }) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         assertStandardMode(config);
         assertBranchSpec(branch);
         assertOptionalSingleLine(comment, "comment");
@@ -232,6 +247,7 @@ export function createTools({ config, backend }) {
     }),
     ...prepareConfirmTool({
       config,
+      backend,
       name: "uvcs_label_create",
       description: "Create a Plastic SCM / UVCS label on a changeset. Requires prepare/confirm.",
       properties: {
@@ -252,7 +268,7 @@ export function createTools({ config, backend }) {
       action: "label_create",
       confirmPhrase: "confirm uvcs label create",
       prepare: async ({ label, target, comment }) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         assertStandardMode(config);
         assertLabelName(label);
         assertChangesetSpec(target);
@@ -263,6 +279,7 @@ export function createTools({ config, backend }) {
     }),
     ...prepareConfirmTool({
       config,
+      backend,
       name: "uvcs_switch_workspace",
       description: "Switch the workspace to a branch, changeset, or label. Requires prepare/confirm.",
       properties: {
@@ -275,7 +292,7 @@ export function createTools({ config, backend }) {
       action: "switch_workspace",
       confirmPhrase: "confirm uvcs switch",
       prepare: async ({ target }) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         assertStandardMode(config);
         assertSwitchTarget(target);
         const status = await backend.pendingChanges();
@@ -292,6 +309,7 @@ export function createTools({ config, backend }) {
     }),
     ...prepareConfirmTool({
       config,
+      backend,
       name: "uvcs_merge",
       description: "Merge a branch/changeset/label into the current workspace branch. Requires prepare/confirm.",
       properties: {
@@ -308,7 +326,7 @@ export function createTools({ config, backend }) {
       action: "merge",
       confirmPhrase: "confirm uvcs merge",
       prepare: async ({ source, comment }) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         assertStandardMode(config);
         assertSwitchTarget(source);
         assertOptionalSingleLine(comment, "comment");
@@ -334,7 +352,7 @@ export function createTools({ config, backend }) {
         }
       },
       async ({ message }) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         assertStandardMode(config);
         assertCheckinMessage(message);
         const status = await backend.pendingChanges();
@@ -377,7 +395,7 @@ export function createTools({ config, backend }) {
         }
       },
       async ({ token, confirmPhrase }) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         assertStandardMode(config);
         if (confirmPhrase !== "confirm uvcs checkin") {
           throw new UvcsError("Invalid confirmPhrase", { code: "INVALID_CONFIRM_PHRASE" });
@@ -415,7 +433,7 @@ function tool(name, description, properties, handler, required = []) {
   };
 }
 
-function prepareConfirmTool({ config, name, description, properties, required, action, confirmPhrase, prepare, confirm }) {
+function prepareConfirmTool({ config, backend, name, description, properties, required, action, confirmPhrase, prepare, confirm }) {
   return [
     tool(
       `${name}_prepare`,
@@ -452,7 +470,7 @@ function prepareConfirmTool({ config, name, description, properties, required, a
         }
       },
       async ({ token, confirmPhrase: providedPhrase }) => {
-        assertWorkspaceAllowed(config);
+        await assertWorkspacePolicy(config, backend);
         assertStandardMode(config);
         if (providedPhrase !== confirmPhrase) {
           throw new UvcsError("Invalid confirmPhrase", { code: "INVALID_CONFIRM_PHRASE" });
@@ -463,6 +481,12 @@ function prepareConfirmTool({ config, name, description, properties, required, a
       ["token", "confirmPhrase"]
     )
   ];
+}
+
+async function assertWorkspacePolicy(config, backend) {
+  assertWorkspaceAllowed(config);
+  if (!config.allowedRepos || config.allowedRepos.length === 0) return;
+  assertRepoAllowed(config, await backend.workspaceInfo());
 }
 
 function countLikelyChangedFiles(statusText) {

@@ -43,7 +43,7 @@ Before opening a pull request:
 
 New tools must use allowlisted commands and argument arrays. Do not add generic shell access, arbitrary `cm` execution, repository delete, repository rename, or background `cm api` startup.
 
-Write tools should default to prepare/confirm when they can mutate repository or workspace state.
+Write tools must use prepare/confirm when they can mutate repository or workspace state.
 
 ## Compatibility
 
@@ -55,4 +55,3 @@ If you add support for a new Plastic SCM / Unity Version Control version, update
 - cloud, on-premises, or local server;
 - commands tested;
 - known limitations.
-
