@@ -5,7 +5,7 @@
 Ask your AI IDE to install this MCP server from the Git repository URL:
 
 ```text
-Install this MCP server from <repo-url>, configure it for my Plastic SCM / Unity Version Control workspace, and run uvcs_doctor.
+Install this MCP server from https://github.com/ProAnima/unity-version-control-mcp, configure it for my Plastic SCM / Unity Version Control workspace, and run uvcs_doctor.
 ```
 
 The server has no runtime npm dependencies, so a git checkout can run directly with Node.js.
@@ -15,7 +15,7 @@ The server has no runtime npm dependencies, so a git checkout can run directly w
 This repo has no runtime npm dependencies. After cloning it, clients can run the MCP server directly with Node.
 
 ```bash
-git clone <repo-url> uvcs-mcp
+git clone https://github.com/ProAnima/unity-version-control-mcp.git uvcs-mcp
 cd uvcs-mcp
 node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro --workspace="D:/Repositories/YourUnityProject" --mode=readonly
 ```

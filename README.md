@@ -15,13 +15,13 @@ Ask your AI IDE to install this MCP server from the Git repository URL.
 For example:
 
 ```text
-Install this MCP server from <repo-url>, configure it for my Plastic SCM / Unity Version Control workspace, and run uvcs_doctor.
+Install this MCP server from https://github.com/ProAnima/unity-version-control-mcp, configure it for my Plastic SCM / Unity Version Control workspace, and run uvcs_doctor.
 ```
 
 Or install manually:
 
 ```bash
-git clone <repo-url> uvcs-mcp
+git clone https://github.com/ProAnima/unity-version-control-mcp.git uvcs-mcp
 cd uvcs-mcp
 node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro --workspace="D:/Repositories/YourUnityProject"
 ```
@@ -140,7 +140,6 @@ The smoke test creates temporary branches, labels, checkins, and a merge through
 - [Security](docs/security.md)
 - [Compatibility](docs/compatibility.md)
 - [Rules for Agents](docs/rules-for-agents.md)
-- [GitHub Publishing](docs/github-publishing.md)
 - [Changelog](CHANGELOG.md)
 
 ## Maintainer

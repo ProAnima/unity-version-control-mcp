@@ -4,6 +4,14 @@
   "description": "Safe MCP server for Unity Version Control and Plastic SCM workspaces.",
   "author": "Ian Panaev, ProAnimaStudio <proanimastudio@gmail.com>",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ProAnima/unity-version-control-mcp.git"
+  },
+  "homepage": "https://github.com/ProAnima/unity-version-control-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/ProAnima/unity-version-control-mcp/issues"
+  },
   "bin": {
     "uvcs-mcp": "src/cli.js",
     "uvcs-mcp-doctor": "src/cli.js"

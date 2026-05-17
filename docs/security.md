@@ -5,7 +5,7 @@ UVCS MCP exposes a fixed allowlist of Plastic SCM / Unity Version Control `cm` c
 ## Modes
 
 - `readonly`: status, branch, locks, diff, and doctor tools.
-- `standard`: enables workspace update and checkin prepare/confirm.
+- `standard`: enables guarded workspace write tools, including update, add, branch create, label create, switch, merge, and checkin.
 
 ## Prepare/confirm
 
