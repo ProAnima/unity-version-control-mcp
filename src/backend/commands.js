@@ -60,6 +60,15 @@ export const CM_COMMANDS = {
   }
 };
 
+export function findChangesetsCommand({ query, format }) {
+  const args = ["find", "changeset", query, `--format=${format}`, "--nototal"];
+  return {
+    args,
+    requireWorkspace: true,
+    mutation: false
+  };
+}
+
 export function diffFileCommand(filePath) {
   return {
     args: ["diff", filePath],

@@ -7,6 +7,13 @@ import {
 } from "../policy/policy.js";
 import { runDoctorService } from "../services/doctor.js";
 import { unityMetaDiagnostics } from "../services/unity-meta.js";
+import { changesetAnalytics } from "../services/analytics.js";
+import {
+  createReleasePlan,
+  loadStyleConfig,
+  previewBranchName,
+  previewCheckinMessage
+} from "../services/style.js";
 import { UvcsError } from "../backend/errors.js";
 
 export function createTools({ config, backend }) {
@@ -32,6 +39,79 @@ export function createTools({ config, backend }) {
       assertWorkspaceAllowed(config);
       return await unityMetaDiagnostics(config.workspace);
     }),
+    tool("uvcs_style_rules", "Return workspace naming and release style rules.", {}, async () => {
+      assertWorkspaceAllowed(config);
+      return await loadStyleConfig(config.workspace);
+    }),
+    tool(
+      "uvcs_name_preview",
+      "Preview a branch name or checkin message from workspace style rules.",
+      {
+        kind: {
+          type: "string",
+          enum: ["branch", "checkin"],
+          description: "Preview kind."
+        },
+        type: {
+          type: "string",
+          description: "Branch or checkin type, such as feature, fix, feat, or release."
+        },
+        title: {
+          type: "string",
+          description: "Human title used for branch slug previews."
+        },
+        summary: {
+          type: "string",
+          description: "Single-line summary used for checkin message previews."
+        },
+        baseBranch: {
+          type: "string",
+          description: "Optional base branch for branch previews, such as /main."
+        }
+      },
+      async ({ kind, type, title, summary, baseBranch }) => {
+        assertWorkspaceAllowed(config);
+        const { style, source, path } = await loadStyleConfig(config.workspace);
+        if (kind === "branch") {
+          return {
+            kind,
+            source,
+            path,
+            value: previewBranchName({ style, baseBranch, type, title })
+          };
+        }
+        if (kind === "checkin") {
+          return {
+            kind,
+            source,
+            path,
+            value: previewCheckinMessage({ style, type, summary })
+          };
+        }
+        throw new UvcsError("kind must be branch or checkin", { code: "INVALID_STYLE_INPUT" });
+      },
+      ["kind", "type"]
+    ),
+    tool(
+      "uvcs_release_plan",
+      "Plan a major, minor, or patch release branch, label, and comments from workspace style rules. Read-only.",
+      {
+        releaseType: {
+          type: "string",
+          enum: ["major", "minor", "patch"],
+          description: "Semantic version bump type."
+        },
+        currentVersion: {
+          type: "string",
+          description: "Optional semantic version. If omitted, the style versionFile is read from the workspace."
+        }
+      },
+      async ({ releaseType, currentVersion }) => {
+        assertWorkspaceAllowed(config);
+        return await createReleasePlan({ workspace: config.workspace, releaseType, currentVersion });
+      },
+      ["releaseType"]
+    ),
     tool(
       "uvcs_diff_file",
       "Return cm diff output for a file inside the workspace.",
@@ -53,6 +133,40 @@ export function createTools({ config, backend }) {
       assertStandardMode(config);
       return await backend.update();
     }),
+    tool(
+      "uvcs_changeset_analytics",
+      "Analyze changesets over an optional date, branch, owner, or comment filter. Read-only.",
+      {
+        since: {
+          type: "string",
+          description: "Optional start date in YYYY-MM-DD format."
+        },
+        until: {
+          type: "string",
+          description: "Optional end date in YYYY-MM-DD format."
+        },
+        branch: {
+          type: "string",
+          description: "Optional branch path, for example /main or /main/release."
+        },
+        owner: {
+          type: "string",
+          description: "Optional changeset owner."
+        },
+        commentLike: {
+          type: "string",
+          description: "Optional substring to match in changeset comments."
+        },
+        maxResults: {
+          type: "number",
+          description: "Maximum changesets to return, from 1 to 500. Default: 100."
+        }
+      },
+      async (args) => {
+        assertWorkspaceAllowed(config);
+        return await changesetAnalytics({ backend, ...args });
+      }
+    ),
     ...prepareConfirmTool({
       config,
       name: "uvcs_add",

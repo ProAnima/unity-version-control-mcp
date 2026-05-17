@@ -8,6 +8,8 @@ Initial alpha release.
 
 - MCP stdio server for Plastic SCM / Unity Version Control `cm`.
 - Read tools for doctor, workspace status, pending changes, branch info, locks, file diff, and Unity `.meta` diagnostics.
+- Style tools for branch names, checkin messages, and release planning from `.uvcs-mcp/style.json`.
+- Changeset analytics tool for date, branch, owner, and comment review windows.
 - Prepare/confirm write tools for add, branch create, label create, workspace switch, merge, update, and checkin.
 - Local git checkout installer via `uvcs-mcp init-local`.
 - Client config generation for Cursor, Codex, Claude Desktop, Claude Code, OpenCode, Antigravity, Kiro, and Windsurf.

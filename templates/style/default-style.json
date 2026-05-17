@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "release": {
+    "baseBranch": "/main",
+    "branchPattern": "{baseBranch}/release/v{version}",
+    "labelPattern": "v{version}",
+    "branchCommentPattern": "Release {version}",
+    "labelCommentPattern": "Release {version}",
+    "checkinMessagePattern": "release: prepare v{version}",
+    "versionFile": "package.json"
+  },
+  "branches": {
+    "allowedTypes": ["feature", "fix", "release", "hotfix", "refactor", "docs", "test", "chore"],
+    "branchPattern": "{baseBranch}/{type}/{slug}",
+    "slugMaxLength": 60
+  },
+  "checkins": {
+    "allowedTypes": ["feat", "fix", "refactor", "docs", "test", "chore", "release"],
+    "messagePattern": "{type}: {summary}",
+    "summaryMaxLength": 120
+  }
+}

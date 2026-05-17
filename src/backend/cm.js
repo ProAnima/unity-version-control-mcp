@@ -6,6 +6,7 @@ import {
   branchCreateCommand,
   checkinCommand,
   diffFileCommand,
+  findChangesetsCommand,
   labelCreateCommand,
   mergeCommand,
   switchCommand
@@ -62,6 +63,7 @@ export function createCmBackend(config) {
     merge: (payload) => runCmSpec(config, mergeCommand(payload)).then(toRawResult),
     update: () => runCmSpec(config, CM_COMMANDS.updateMachine).then(toRawResult),
     checkin: (message) => runCmSpec(config, checkinCommand(message)).then(toRawResult),
+    findChangesets: (payload) => runCmSpec(config, findChangesetsCommand(payload)).then(toRawResult),
     version: () => runCmSpec(config, CM_COMMANDS.version).then(toRawResult),
     showCommands: () => runCmSpec(config, CM_COMMANDS.showCommands).then(toRawResult),
     apiHelp: () => runCmSpec(config, CM_COMMANDS.apiHelp).then(toRawResult),

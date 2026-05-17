@@ -1,0 +1,26 @@
+# Safety Model
+
+UVCS MCP exposes allowlisted Plastic SCM / Unity Version Control `cm` commands.
+
+It does not expose:
+
+- arbitrary shell execution;
+- arbitrary `cm` execution;
+- repository delete;
+- repository rename;
+- raw `cm api` startup.
+
+Default mode:
+
+```text
+UVCS_MCP_MODE=readonly
+```
+
+Write mode:
+
+```text
+UVCS_MCP_MODE=standard
+```
+
+Critical write operations use prepare/confirm tokens.
+

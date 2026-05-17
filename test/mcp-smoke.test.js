@@ -21,6 +21,10 @@ test("mcp server lists uvcs tools", async () => {
   const response = JSON.parse(lines[0]);
   const toolNames = response.result.tools.map((tool) => tool.name);
   assert.equal(toolNames.includes("uvcs_workspace_status"), true);
+  assert.equal(toolNames.includes("uvcs_style_rules"), true);
+  assert.equal(toolNames.includes("uvcs_name_preview"), true);
+  assert.equal(toolNames.includes("uvcs_release_plan"), true);
+  assert.equal(toolNames.includes("uvcs_changeset_analytics"), true);
   assert.equal(toolNames.includes("uvcs_checkin_prepare"), true);
   assert.equal(toolNames.includes("uvcs_branch_create_prepare"), true);
   assert.equal(toolNames.includes("uvcs_label_create_prepare"), true);

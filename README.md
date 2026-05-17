@@ -115,8 +115,12 @@ Manual MCP block:
 - `uvcs_branch_info`
 - `uvcs_locks`
 - `uvcs_unity_meta_diagnostics`
+- `uvcs_style_rules`
+- `uvcs_name_preview`
+- `uvcs_release_plan`
 - `uvcs_diff_file`
 - `uvcs_update_workspace`
+- `uvcs_changeset_analytics`
 - `uvcs_add_prepare` / `uvcs_add_confirm`
 - `uvcs_branch_create_prepare` / `uvcs_branch_create_confirm`
 - `uvcs_label_create_prepare` / `uvcs_label_create_confirm`
@@ -152,10 +156,12 @@ The smoke test creates temporary branches, labels, checkins, and a merge through
 - [Clients](docs/clients.md)
 - [Security](docs/security.md)
 - [Compatibility](docs/compatibility.md)
+- [Automation Style](docs/automation-style.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Rules for Agents](docs/rules-for-agents.md)
 - [Contributing](CONTRIBUTING.md)
 - [Support](SUPPORT.md)
+- [Wiki Source](wiki/Home.md)
 - [Changelog](CHANGELOG.md)
 
 ## Maintainer

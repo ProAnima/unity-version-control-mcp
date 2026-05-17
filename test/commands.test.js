@@ -7,6 +7,7 @@ import {
   branchCreateCommand,
   checkinCommand,
   diffFileCommand,
+  findChangesetsCommand,
   labelCreateCommand,
   mergeCommand,
   switchCommand
@@ -24,6 +25,10 @@ test("critical cm commands use documented command names and safe argv arrays", (
   assert.deepEqual(labelCreateCommand({ label: "L1", target: "cs:2", comment: "c" }).args, ["label", "create", "L1", "cs:2", "-c=c"]);
   assert.deepEqual(switchCommand("/main/task").args, ["switch", "/main/task"]);
   assert.deepEqual(mergeCommand({ source: "/main/task" }).args, ["merge", "/main/task", "--merge", "--nointeractiveresolution", ...MACHINE_READABLE_FLAGS]);
+  assert.deepEqual(
+    findChangesetsCommand({ query: "where date >= '2026/01/01' order by date desc limit 25", format: "{changesetid}" }).args,
+    ["find", "changeset", "where date >= '2026/01/01' order by date desc limit 25", "--format={changesetid}", "--nototal"]
+  );
 
   for (const spec of Object.values(CM_COMMANDS)) {
     assert.equal(Array.isArray(spec.args), true);
