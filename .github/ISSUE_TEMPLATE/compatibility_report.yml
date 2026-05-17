@@ -1,0 +1,57 @@
+name: Compatibility report
+description: Report a tested Plastic SCM / Unity Version Control version.
+title: "[Compatibility]: "
+labels:
+  - compatibility
+body:
+  - type: input
+    id: product
+    attributes:
+      label: Product branding
+      placeholder: "Plastic SCM, Unity Version Control, Unity DevOps Version Control"
+    validations:
+      required: true
+  - type: input
+    id: cm-version
+    attributes:
+      label: cm version
+      placeholder: "10.0.16.6656"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11, macOS 15, Ubuntu 24.04"
+    validations:
+      required: true
+  - type: dropdown
+    id: server-kind
+    attributes:
+      label: Server type
+      options:
+        - Unity Cloud / Unity Version Control Cloud
+        - On-premises server
+        - Local server
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: tested-tools
+    attributes:
+      label: Tested tools
+      placeholder: |
+        - uvcs_doctor
+        - uvcs_workspace_status
+        - uvcs_pending_changes
+        - uvcs_checkin_prepare / uvcs_checkin_confirm
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes and limitations
+      description: Include sanitized errors or version-specific behavior.
+    validations:
+      required: false
+

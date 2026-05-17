@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/ProAnima/unity-version-control-mcp/security/policy
+    about: Please report security vulnerabilities privately using the security policy.

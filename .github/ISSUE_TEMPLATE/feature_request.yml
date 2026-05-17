@@ -1,0 +1,51 @@
+name: Feature request
+description: Suggest a source-control workflow or MCP tool.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        UVCS MCP focuses on Plastic SCM / Unity Version Control source-control workflows. It is not a Unity Editor automation server.
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow
+      description: What source-control workflow should this improve?
+      placeholder: "Example: create a release branch, label the release changeset, and prepare a guarded checkin."
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current workaround
+      description: How do you handle this today?
+    validations:
+      required: false
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the MCP tool, command flow, or policy behavior you expect.
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Mutation risk
+      options:
+        - Read-only
+        - Workspace write
+        - Repository write
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety expectations
+      description: Should this require prepare/confirm, max file limits, naming policy checks, or other guards?
+    validations:
+      required: false
+

@@ -24,7 +24,10 @@
     "docs",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "SECURITY.md",
+    "SUPPORT.md"
   ],
   "engines": {
     "node": ">=20"

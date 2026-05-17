@@ -1,0 +1,99 @@
+name: Bug report
+description: Report a reproducible UVCS MCP bug.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please remove secrets, access tokens, private server credentials, and proprietary repository contents.
+  - type: input
+    id: version
+    attributes:
+      label: UVCS MCP version
+      description: Package version, tag, or commit SHA.
+      placeholder: "0.1.0-alpha.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: client
+    attributes:
+      label: MCP client
+      options:
+        - Cursor
+        - Codex
+        - Claude Desktop
+        - Claude Code
+        - OpenCode
+        - Antigravity
+        - Kiro
+        - Windsurf
+        - Zed
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11, macOS 15, Ubuntu 24.04"
+    validations:
+      required: true
+  - type: input
+    id: cm-version
+    attributes:
+      label: Plastic SCM / Unity Version Control version
+      description: Output of `cm version`, if available.
+      placeholder: "10.0.16.6656"
+    validations:
+      required: true
+  - type: dropdown
+    id: server-kind
+    attributes:
+      label: Server type
+      options:
+        - Unity Cloud / Unity Version Control Cloud
+        - On-premises server
+        - Local server
+        - Unknown
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Failing tool
+      placeholder: "uvcs_doctor, uvcs_checkin_prepare, uvcs_merge_confirm"
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Sanitized uvcs_doctor output
+      description: Remove private paths, credentials, and proprietary details.
+      render: text
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Configure ...
+        2. Run ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+

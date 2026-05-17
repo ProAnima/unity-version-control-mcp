@@ -6,9 +6,13 @@ Safe MCP server for Unity Version Control, Unity DevOps Version Control, and Pla
 
 UVCS MCP connects AI IDEs and coding agents to the local `cm` CLI through a fixed allowlist of documented SCM commands. It helps agents inspect source-control workspace state, prepare changes, create branches and labels, run guarded checkins, and perform merges without arbitrary shell access.
 
-This project is for the Plastic SCM / Unity Version Control source-control system. It does not automate the Unity Editor or Unity runtime.
-
 This is an alpha release. It has been tested end-to-end on Plastic SCM `10.0.16.6656`.
+
+## Not a Unity Editor MCP
+
+UVCS MCP is not a Unity Editor automation server. It does not control scenes, GameObjects, Play Mode, Unity packages, editor windows, builds, or runtime objects.
+
+It works with the Plastic SCM / Unity Version Control `cm` CLI and focuses on source-control workflows: status, pending changes, branches, labels, checkins, locks, diffs, and merges.
 
 ## Quick Install
 
@@ -135,13 +139,23 @@ npm run smoke:plastic -- "D:/Repositories/YourWorkspace"
 
 The smoke test creates temporary branches, labels, checkins, and a merge through MCP tools.
 
+## Project Support
+
+- Use GitHub Issues for reproducible bugs, client setup problems, and compatibility reports.
+- Use feature requests for new SCM workflows or MCP tools.
+- Do not include secrets, access tokens, private server credentials, or full proprietary logs in public issues.
+- For security reports, see [Security Policy](SECURITY.md).
+
 ## Documentation
 
 - [Install](docs/install.md)
 - [Clients](docs/clients.md)
 - [Security](docs/security.md)
 - [Compatibility](docs/compatibility.md)
+- [Troubleshooting](docs/troubleshooting.md)
 - [Rules for Agents](docs/rules-for-agents.md)
+- [Contributing](CONTRIBUTING.md)
+- [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
 
 ## Maintainer
