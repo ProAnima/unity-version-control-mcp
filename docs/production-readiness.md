@@ -1,6 +1,6 @@
 # Production Readiness
 
-UVCS MCP is currently an alpha release. The architecture is intentionally conservative, but production trust requires evidence across teams, versions, operating systems, and real Plastic SCM / Unity Version Control deployments.
+UVCS MCP is currently an alpha release. The current release line is `0.2.x-alpha`. The architecture is intentionally conservative, but production trust requires evidence across teams, versions, operating systems, and real Plastic SCM / Unity Version Control deployments.
 
 ## Current status
 
@@ -57,4 +57,3 @@ Before calling the project production-ready:
 - arbitrary shell execution;
 - arbitrary `cm` execution;
 - long-running `cm api` management.
-

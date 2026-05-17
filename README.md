@@ -6,7 +6,7 @@ Safe MCP server for Unity Version Control, Unity DevOps Version Control, and Pla
 
 UVCS MCP connects AI IDEs and coding agents to the local `cm` CLI through a fixed allowlist of documented SCM commands. It helps agents inspect source-control workspace state, prepare changes, create branches and labels, run guarded checkins, and perform merges without arbitrary shell access.
 
-This is an alpha release. It has been tested end-to-end on Plastic SCM `10.0.16.6656`.
+Current release: `0.2.0-alpha.1`. It has been tested end-to-end on Plastic SCM `10.0.16.6656`.
 
 ## Not a Unity Editor MCP
 

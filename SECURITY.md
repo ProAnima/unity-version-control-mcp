@@ -6,7 +6,8 @@ Security fixes target the current release line.
 
 | Version | Supported |
 | --- | --- |
-| `0.1.x-alpha` | Yes |
+| `0.2.x-alpha` | Yes |
+| `0.1.x-alpha` | No |
 
 ## Reporting a Vulnerability
 

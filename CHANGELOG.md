@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.0-alpha.1 - 2026-05-17
+
+Second alpha release focused on automation style, changeset analytics, and stronger policy enforcement.
+
+### Added
+
+- Style tools for branch names, checkin messages, and release planning from `.uvcs-mcp/style.json`.
+- Changeset analytics tool for date, branch, owner, and comment review windows.
+- Repository allowlist enforcement through `UVCS_ALLOWED_REPOS`.
+- Production readiness checklist and release criteria documentation.
+- Wiki source pages for quick start, client setup, safety, automation style, analytics, and troubleshooting.
+
+### Changed
+
+- `uvcs_update_workspace` now uses `uvcs_update_workspace_prepare` / `uvcs_update_workspace_confirm`.
+- Confirm steps now re-check workspace and repository policy.
+- Removed unused `UVCS_ENABLE_TIER2` config parsing.
+- Updated package, MCP server, and issue template versions to `0.2.0-alpha.1`.
+
 ## 0.1.0-alpha.1 - 2026-05-17
 
 Initial alpha release.
@@ -8,10 +27,8 @@ Initial alpha release.
 
 - MCP stdio server for Plastic SCM / Unity Version Control `cm`.
 - Read tools for doctor, workspace status, pending changes, branch info, locks, file diff, and Unity `.meta` diagnostics.
-- Style tools for branch names, checkin messages, and release planning from `.uvcs-mcp/style.json`.
-- Changeset analytics tool for date, branch, owner, and comment review windows.
-- Repository allowlist enforcement through `UVCS_ALLOWED_REPOS`.
-- Prepare/confirm write tools for add, branch create, label create, workspace switch, merge, update, and checkin.
+- Prepare/confirm write tools for add, branch create, label create, workspace switch, merge, and checkin.
+- Standard-mode workspace update tool.
 - Local git checkout installer via `uvcs-mcp init-local`.
 - Client config generation for Cursor, Codex, Claude Desktop, Claude Code, OpenCode, Antigravity, Kiro, and Windsurf.
 - Cross-platform client config paths for Windows, macOS, and Linux.
