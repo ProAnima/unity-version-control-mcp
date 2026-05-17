@@ -1,0 +1,42 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import path from "node:path";
+import {
+  assertRelativeWorkspacePath,
+  assertStandardMode,
+  consumeConfirmToken,
+  createConfirmToken
+} from "../src/policy/policy.js";
+
+test("relative workspace paths cannot escape workspace", () => {
+  const config = {
+    workspace: path.resolve("workspace")
+  };
+
+  assert.equal(assertRelativeWorkspacePath(config, "Assets/Foo.asset"), path.join("Assets", "Foo.asset"));
+  assert.throws(() => assertRelativeWorkspacePath(config, "../outside.txt"), /inside UVCS_WORKSPACE/);
+});
+
+test("standard mode guard rejects readonly", () => {
+  assert.throws(() => assertStandardMode({ mode: "readonly" }), /standard/);
+  assert.doesNotThrow(() => assertStandardMode({ mode: "standard" }));
+});
+
+test("confirm tokens are single use and action scoped", () => {
+  const { token } = createConfirmToken({
+    action: "checkin",
+    payload: { message: "ok" },
+    ttlSec: 60
+  });
+
+  assert.throws(() => consumeConfirmToken({ token, action: "update" }), /checkin/);
+
+  const second = createConfirmToken({
+    action: "checkin",
+    payload: { message: "ok" },
+    ttlSec: 60
+  });
+
+  assert.deepEqual(consumeConfirmToken({ token: second.token, action: "checkin" }), { message: "ok" });
+  assert.throws(() => consumeConfirmToken({ token: second.token, action: "checkin" }), /Unknown/);
+});

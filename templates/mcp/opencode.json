@@ -1,0 +1,13 @@
+{
+  "mcp": {
+    "uvcs": {
+      "type": "local",
+      "command": ["npx", "-y", "@proanima/uvcs-mcp"],
+      "enabled": true,
+      "environment": {
+        "UVCS_WORKSPACE": "D:/Repositories/YourUnityProject",
+        "UVCS_MCP_MODE": "readonly"
+      }
+    }
+  }
+}

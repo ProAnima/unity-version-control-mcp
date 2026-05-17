@@ -1,0 +1,58 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  CM_COMMANDS,
+  MACHINE_READABLE_FLAGS,
+  addCommand,
+  branchCreateCommand,
+  checkinCommand,
+  diffFileCommand,
+  labelCreateCommand,
+  mergeCommand,
+  switchCommand
+} from "../src/backend/commands.js";
+import { runCmSpec } from "../src/backend/cm.js";
+
+test("critical cm commands use documented command names and safe argv arrays", () => {
+  assert.deepEqual(CM_COMMANDS.statusShort.args, ["status", "--short"]);
+  assert.deepEqual(CM_COMMANDS.statusMachine.args, ["status", ...MACHINE_READABLE_FLAGS]);
+  assert.deepEqual(CM_COMMANDS.updateMachine.args, ["update", "--noinput", ...MACHINE_READABLE_FLAGS]);
+  assert.deepEqual(checkinCommand("hello").args, ["checkin", "-c=hello", "--applychanged", ...MACHINE_READABLE_FLAGS]);
+  assert.deepEqual(diffFileCommand("Assets/Foo.prefab").args, ["diff", "Assets/Foo.prefab"]);
+  assert.deepEqual(addCommand("Assets/Foo.prefab").args, ["add", "-R", "Assets/Foo.prefab"]);
+  assert.deepEqual(branchCreateCommand({ branch: "/main/task", fromChangeset: "cs:1", comment: "c" }).args, ["branch", "create", "/main/task", "--changeset=cs:1", "-c=c"]);
+  assert.deepEqual(labelCreateCommand({ label: "L1", target: "cs:2", comment: "c" }).args, ["label", "create", "L1", "cs:2", "-c=c"]);
+  assert.deepEqual(switchCommand("/main/task").args, ["switch", "/main/task"]);
+  assert.deepEqual(mergeCommand({ source: "/main/task" }).args, ["merge", "/main/task", "--merge", "--nointeractiveresolution", ...MACHINE_READABLE_FLAGS]);
+
+  for (const spec of Object.values(CM_COMMANDS)) {
+    assert.equal(Array.isArray(spec.args), true);
+    assert.equal(spec.args.every((arg) => typeof arg === "string" && arg.length > 0), true);
+  }
+});
+
+test("mutating commands are blocked by backend in readonly mode", async () => {
+  const config = {
+    cmPath: "cm",
+    workspace: process.cwd(),
+    mode: "readonly"
+  };
+
+  await assert.rejects(
+    () => runCmSpec(config, CM_COMMANDS.updateMachine),
+    /UVCS_MCP_MODE=standard/
+  );
+});
+
+test("read commands still require workspace when command needs one", async () => {
+  const config = {
+    cmPath: "cm",
+    workspace: "",
+    mode: "readonly"
+  };
+
+  await assert.rejects(
+    () => runCmSpec(config, CM_COMMANDS.statusShort),
+    /UVCS_WORKSPACE is required/
+  );
+});

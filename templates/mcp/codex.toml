@@ -1,0 +1,7 @@
+[mcp_servers.uvcs]
+command = "npx"
+args = ["-y", "@proanima/uvcs-mcp"]
+
+[mcp_servers.uvcs.env]
+UVCS_WORKSPACE = "D:/Repositories/YourUnityProject"
+UVCS_MCP_MODE = "readonly"

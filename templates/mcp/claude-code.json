@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "uvcs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@proanima/uvcs-mcp"],
+      "env": {
+        "UVCS_WORKSPACE": "D:/Repositories/YourUnityProject",
+        "UVCS_MCP_MODE": "readonly"
+      }
+    }
+  }
+}
