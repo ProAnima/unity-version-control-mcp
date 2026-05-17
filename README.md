@@ -1,8 +1,22 @@
-# UVCS MCP
+# UVCS MCP - Unity Version Control / Plastic SCM MCP Server
 
-Safe MCP server for Plastic SCM / Unity Version Control workspaces.
+Safe MCP server for Unity Version Control, Unity DevOps Version Control, and Plastic SCM workspaces.
 
-UVCS MCP talks to the local `cm` CLI through a fixed allowlist of documented SCM commands. It is built for coding agents that need to inspect workspace state, prepare changes, and perform guarded Plastic SCM / UVCS operations without arbitrary shell access.
+UVCS MCP connects AI IDEs and coding agents to the local `cm` CLI through a fixed allowlist of documented SCM commands. It helps agents inspect workspace state, prepare changes, create branches and labels, run guarded checkins, and perform merges without arbitrary shell access.
+
+Recommended GitHub repository name: `unity-version-control-mcp`.
+
+Suggested GitHub description:
+
+```text
+Safe MCP server for Unity Version Control, Unity DevOps Version Control, and Plastic SCM.
+```
+
+Suggested GitHub topics:
+
+```text
+mcp, mcp-server, model-context-protocol, unity-version-control, unity-devops, uvcs, plastic-scm, version-control, source-control, scm, ai-ide, cursor, codex, claude, opencode, kiro
+```
 
 Author: Ian Panaev, ProAnimaStudio, 2026. Contact: proanimastudio@gmail.com.
 
@@ -140,4 +154,5 @@ The smoke test creates temporary branches, labels, checkins, and a merge through
 - [Security](docs/security.md)
 - [Compatibility](docs/compatibility.md)
 - [Rules for Agents](docs/rules-for-agents.md)
+- [GitHub Publishing](docs/github-publishing.md)
 - [Changelog](CHANGELOG.md)

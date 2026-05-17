@@ -1,7 +1,7 @@
 {
   "name": "@proanima/uvcs-mcp",
   "version": "0.1.0-alpha.1",
-  "description": "Safe MCP server for Plastic SCM / Unity Version Control workspaces.",
+  "description": "Safe MCP server for Unity Version Control and Plastic SCM workspaces.",
   "author": "Ian Panaev, ProAnimaStudio <proanimastudio@gmail.com>",
   "type": "module",
   "bin": {
@@ -34,10 +34,23 @@
   },
   "keywords": [
     "mcp",
+    "mcp-server",
+    "model-context-protocol",
     "unity",
+    "unity-version-control",
+    "unity-devops",
     "uvcs",
     "plastic-scm",
-    "version-control"
+    "plastic",
+    "version-control",
+    "source-control",
+    "scm",
+    "ai-ide",
+    "cursor",
+    "codex",
+    "claude",
+    "opencode",
+    "kiro"
   ],
   "license": "MIT"
 }
