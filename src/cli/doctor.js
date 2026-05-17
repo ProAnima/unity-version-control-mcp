@@ -55,7 +55,7 @@ function doctorHints(report) {
     hints.push("Install Plastic SCM / Unity Version Control CLI, add cm to PATH, or set UVCS_CM_PATH.");
   }
   if (!report.workspace) {
-    hints.push("Set UVCS_WORKSPACE to a Plastic SCM / Unity Version Control workspace.");
+    hints.push("Set UVCS_WORKSPACE to a Plastic SCM / Unity Version Control source-control workspace.");
   }
   if (report.workspace && !report.statusOk) {
     hints.push("Verify the path is an existing workspace and that the local client is logged in to its server.");

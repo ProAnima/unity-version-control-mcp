@@ -1,13 +1,13 @@
 # Rules for Agents
 
-Use this MCP as a safe SCM assistant for Plastic SCM / Unity Version Control workspaces. The backend is the `cm` CLI, not Unity Editor automation.
+Use this MCP as a safe SCM assistant for Plastic SCM / Unity Version Control source-control workspaces. The backend is the `cm` CLI, not Unity Editor automation.
 
 ## Before Reading or Editing
 
 - Start with `uvcs_workspace_status`.
 - Use `uvcs_pending_changes` before summarizing user work.
 - Use `uvcs_locks` before editing files that may be locked by other users.
-- Use `uvcs_unity_meta_diagnostics` for Unity projects before checkin, especially when assets were created, moved, or deleted.
+- Use `uvcs_unity_meta_diagnostics` for Unity asset workspaces before checkin, especially when assets were created, moved, or deleted.
 
 ## During Edits
 
@@ -25,6 +25,6 @@ Use this MCP as a safe SCM assistant for Plastic SCM / Unity Version Control wor
 
 ## Communication
 
-- Report SCM state separately from Unity project state.
+- Report SCM state separately from Unity Editor project state.
 - Say "Plastic SCM / Unity Version Control `cm` command" for SCM operations.
 - Reserve "Unity" wording for asset workflow checks such as `.meta` diagnostics.

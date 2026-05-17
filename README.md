@@ -2,20 +2,22 @@
 
 ![UVCS MCP header](assets/uvcs-mcp-header.png)
 
-Safe MCP server for Unity Version Control, Unity DevOps Version Control, and Plastic SCM workspaces.
+Safe MCP server for Unity Version Control, Unity DevOps Version Control, and Plastic SCM source-control workspaces.
 
-UVCS MCP connects AI IDEs and coding agents to the local `cm` CLI through a fixed allowlist of documented SCM commands. It helps agents inspect workspace state, prepare changes, create branches and labels, run guarded checkins, and perform merges without arbitrary shell access.
+UVCS MCP connects AI IDEs and coding agents to the local `cm` CLI through a fixed allowlist of documented SCM commands. It helps agents inspect source-control workspace state, prepare changes, create branches and labels, run guarded checkins, and perform merges without arbitrary shell access.
+
+This project is for the Plastic SCM / Unity Version Control source-control system. It does not automate the Unity Editor or Unity runtime.
 
 This is an alpha release. It has been tested end-to-end on Plastic SCM `10.0.16.6656`.
 
 ## Quick Install
 
-Ask your AI IDE to install this MCP server from the Git repository URL.
+Ask your AI IDE to install this MCP server from the GitHub repository URL.
 
 For example:
 
 ```text
-Install this MCP server from https://github.com/ProAnima/unity-version-control-mcp, configure it for my Plastic SCM / Unity Version Control workspace, and run uvcs_doctor.
+Install this MCP server from https://github.com/ProAnima/unity-version-control-mcp, configure it for my Plastic SCM / Unity Version Control source-control workspace, and run uvcs_doctor.
 ```
 
 Or install manually:
@@ -23,7 +25,7 @@ Or install manually:
 ```bash
 git clone https://github.com/ProAnima/unity-version-control-mcp.git uvcs-mcp
 cd uvcs-mcp
-node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro --workspace="D:/Repositories/YourUnityProject"
+node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro --workspace="D:/Repositories/YourWorkspace"
 ```
 
 Restart your MCP client, then ask it to run:
@@ -36,7 +38,7 @@ uvcs_workspace_status
 Preview config changes without writing:
 
 ```bash
-node src/cli.js init-local --client=all --workspace="D:/Repositories/YourUnityProject" --print-config
+node src/cli.js init-local --client=all --workspace="D:/Repositories/YourWorkspace" --print-config
 ```
 
 ## Manual Setup By OS
@@ -44,19 +46,19 @@ node src/cli.js init-local --client=all --workspace="D:/Repositories/YourUnityPr
 Windows:
 
 ```powershell
-node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro,windsurf --workspace="D:\Repositories\YourUnityProject"
+node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro,windsurf --workspace="D:\Repositories\YourWorkspace"
 ```
 
 macOS:
 
 ```bash
-node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro,windsurf --workspace="$HOME/Repositories/YourUnityProject"
+node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro,windsurf --workspace="$HOME/Repositories/YourWorkspace"
 ```
 
 Linux:
 
 ```bash
-node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro,windsurf --workspace="$HOME/Repositories/YourUnityProject"
+node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro,windsurf --workspace="$HOME/Repositories/YourWorkspace"
 ```
 
 If `cm` is not in `PATH`, add `--cm=/path/to/cm` or set `UVCS_CM_PATH`.
@@ -64,7 +66,7 @@ If `cm` is not in `PATH`, add `--cm=/path/to/cm` or set `UVCS_CM_PATH`.
 ## Quick Start From npm
 
 ```bash
-npx -y @proanima/uvcs-mcp init --client=cursor,codex --workspace="D:/Repositories/YourUnityProject"
+npx -y @proanima/uvcs-mcp init --client=cursor,codex --workspace="D:/Repositories/YourWorkspace"
 ```
 
 Manual MCP block:
@@ -74,7 +76,7 @@ Manual MCP block:
   "command": "npx",
   "args": ["-y", "@proanima/uvcs-mcp"],
   "env": {
-    "UVCS_WORKSPACE": "D:/Repositories/YourUnityProject",
+    "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
     "UVCS_MCP_MODE": "readonly"
   }
 }
@@ -128,7 +130,7 @@ npm run check
 Run the real Plastic SCM smoke test against a disposable or safe workspace:
 
 ```bash
-npm run smoke:plastic -- "D:/Repositories/YourUnityProject"
+npm run smoke:plastic -- "D:/Repositories/YourWorkspace"
 ```
 
 The smoke test creates temporary branches, labels, checkins, and a merge through MCP tools.

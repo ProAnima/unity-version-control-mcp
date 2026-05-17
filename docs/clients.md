@@ -47,7 +47,7 @@ Project config:
 Run:
 
 ```bash
-node src/cli.js init-local --client=claude-code --workspace="D:/Repositories/YourUnityProject"
+node src/cli.js init-local --client=claude-code --workspace="D:/Repositories/YourWorkspace"
 ```
 
 ## OpenCode
@@ -79,7 +79,7 @@ mcp_config.json
 Run:
 
 ```bash
-node src/cli.js init-local --client=antigravity --workspace="D:/Repositories/YourUnityProject"
+node src/cli.js init-local --client=antigravity --workspace="D:/Repositories/YourWorkspace"
 ```
 
 ## Kiro
@@ -99,8 +99,8 @@ Global config:
 Run:
 
 ```bash
-node src/cli.js init-local --client=kiro --workspace="D:/Repositories/YourUnityProject"
-node src/cli.js init-local --client=kiro-global --workspace="D:/Repositories/YourUnityProject"
+node src/cli.js init-local --client=kiro --workspace="D:/Repositories/YourWorkspace"
+node src/cli.js init-local --client=kiro-global --workspace="D:/Repositories/YourWorkspace"
 ```
 
 ## Windsurf

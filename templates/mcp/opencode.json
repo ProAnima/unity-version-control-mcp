@@ -5,7 +5,7 @@
       "command": ["npx", "-y", "@proanima/uvcs-mcp"],
       "enabled": true,
       "environment": {
-        "UVCS_WORKSPACE": "D:/Repositories/YourUnityProject",
+        "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
         "UVCS_MCP_MODE": "readonly"
       }
     }

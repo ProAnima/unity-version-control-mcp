@@ -36,7 +36,7 @@ export function formatToolError(error) {
 function hintForError(error) {
   switch (error?.code) {
     case "WORKSPACE_REQUIRED":
-      return "Set UVCS_WORKSPACE to a Plastic SCM / Unity Version Control workspace path.";
+      return "Set UVCS_WORKSPACE to a Plastic SCM / Unity Version Control source-control workspace path.";
     case "MUTATION_REQUIRES_STANDARD_MODE":
     case "POLICY_DENIED":
       return "Read-only mode is active. Set UVCS_MCP_MODE=standard only when write operations are intended.";

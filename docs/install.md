@@ -2,10 +2,10 @@
 
 ## AI IDE assisted install
 
-Ask your AI IDE to install this MCP server from the Git repository URL:
+Ask your AI IDE to install this MCP server from the GitHub repository URL:
 
 ```text
-Install this MCP server from https://github.com/ProAnima/unity-version-control-mcp, configure it for my Plastic SCM / Unity Version Control workspace, and run uvcs_doctor.
+Install this MCP server from https://github.com/ProAnima/unity-version-control-mcp, configure it for my Plastic SCM / Unity Version Control source-control workspace, and run uvcs_doctor.
 ```
 
 The server has no runtime npm dependencies, so a git checkout can run directly with Node.js.
@@ -17,15 +17,15 @@ This repo has no runtime npm dependencies. After cloning it, clients can run the
 ```bash
 git clone https://github.com/ProAnima/unity-version-control-mcp.git uvcs-mcp
 cd uvcs-mcp
-node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro --workspace="D:/Repositories/YourUnityProject" --mode=readonly
+node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro --workspace="D:/Repositories/YourWorkspace" --mode=readonly
 ```
 
 Convenience npm scripts are also available:
 
 ```bash
-npm run setup:cursor -- --workspace="D:/Repositories/YourUnityProject"
-npm run setup:codex -- --workspace="D:/Repositories/YourUnityProject"
-npm run setup:all -- --workspace="D:/Repositories/YourUnityProject"
+npm run setup:cursor -- --workspace="D:/Repositories/YourWorkspace"
+npm run setup:codex -- --workspace="D:/Repositories/YourWorkspace"
+npm run setup:all -- --workspace="D:/Repositories/YourWorkspace"
 ```
 
 `init-local` writes client configs that run this checkout directly:
@@ -35,7 +35,7 @@ npm run setup:all -- --workspace="D:/Repositories/YourUnityProject"
   "command": "C:/Program Files/nodejs/node.exe",
   "args": ["C:/path/to/uvcs-mcp/src/cli.js"],
   "env": {
-    "UVCS_WORKSPACE": "D:/Repositories/YourUnityProject",
+    "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
     "UVCS_MCP_MODE": "readonly"
   }
 }
@@ -56,25 +56,25 @@ Existing config files are backed up as `.bak` before writing. Use `--no-backup` 
 Windows:
 
 ```powershell
-node src/cli.js init-local --client=all --workspace="D:\Repositories\YourUnityProject"
+node src/cli.js init-local --client=all --workspace="D:\Repositories\YourWorkspace"
 ```
 
 macOS:
 
 ```bash
-node src/cli.js init-local --client=all --workspace="$HOME/Repositories/YourUnityProject"
+node src/cli.js init-local --client=all --workspace="$HOME/Repositories/YourWorkspace"
 ```
 
 Linux:
 
 ```bash
-node src/cli.js init-local --client=all --workspace="$HOME/Repositories/YourUnityProject"
+node src/cli.js init-local --client=all --workspace="$HOME/Repositories/YourWorkspace"
 ```
 
 If `cm` is not in `PATH`, pass an explicit CLI path:
 
 ```bash
-node src/cli.js init-local --client=cursor --workspace="$HOME/Repositories/YourUnityProject" --cm="/path/to/cm"
+node src/cli.js init-local --client=cursor --workspace="$HOME/Repositories/YourWorkspace" --cm="/path/to/cm"
 ```
 
 ## From npm
@@ -92,7 +92,7 @@ The initializer merges an `uvcs` MCP server block into supported client configs 
   "command": "npx",
   "args": ["-y", "@proanima/uvcs-mcp"],
   "env": {
-    "UVCS_WORKSPACE": "D:/Repositories/YourUnityProject",
+    "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
     "UVCS_MCP_MODE": "readonly"
   }
 }
@@ -101,7 +101,7 @@ The initializer merges an `uvcs` MCP server block into supported client configs 
 ## Troubleshooting
 
 ```bash
-node src/cli.js doctor --workspace="D:/Repositories/YourUnityProject"
+node src/cli.js doctor --workspace="D:/Repositories/YourWorkspace"
 ```
 
 On Windows, if Cyrillic paths or output look broken in a terminal, run:
