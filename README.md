@@ -1,5 +1,7 @@
 # UVCS MCP - Unity Version Control / Plastic SCM MCP Server
 
+![UVCS MCP header](assets/uvcs-mcp-header.png)
+
 Safe MCP server for Unity Version Control, Unity DevOps Version Control, and Plastic SCM workspaces.
 
 UVCS MCP connects AI IDEs and coding agents to the local `cm` CLI through a fixed allowlist of documented SCM commands. It helps agents inspect workspace state, prepare changes, create branches and labels, run guarded checkins, and perform merges without arbitrary shell access.
