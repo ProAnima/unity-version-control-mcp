@@ -11,7 +11,7 @@
   "files": [
     "src",
     "scripts",
-    "assets",
+    "assets/uvcs-mcp-header.png",
     "templates",
     "docs",
     "README.md",
