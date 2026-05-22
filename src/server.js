@@ -6,7 +6,7 @@ import { toolFailure, toolSuccess } from "./server/tool-result.js";
 
 const SERVER_INFO = {
   name: "uvcs-mcp",
-  version: "0.2.0-alpha.1"
+  version: "0.2.0"
 };
 
 export async function startServer({ input = process.stdin, output = process.stdout } = {}) {

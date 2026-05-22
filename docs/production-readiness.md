@@ -1,6 +1,6 @@
 # Production Readiness
 
-UVCS MCP is currently an alpha release. The current release line is `0.2.x-alpha`. The architecture is intentionally conservative, but production trust requires evidence across teams, versions, operating systems, and real Plastic SCM / Unity Version Control deployments.
+UVCS MCP is currently a stable `0.2.x` release line. The architecture is intentionally conservative, but broader production trust still requires evidence across teams, operating systems, and deployment topologies beyond the versions already validated in the field.
 
 ## Current status
 
@@ -13,6 +13,7 @@ Already in place:
 - workspace and repository allowlists;
 - unit tests, syntax checks, and CI on Node.js 20, 22, and 24;
 - one full Plastic SCM E2E smoke pass on `pas-Kodeks@SRV-IAN-N:8087`;
+- live validation on Plastic SCM `10.0.16.6656+` and Unity Version Control / Unity DevOps Version Control `11.x`;
 - public install, security, compatibility, troubleshooting, support, and contribution docs.
 
 ## Beta criteria
@@ -20,7 +21,7 @@ Already in place:
 Before calling the project beta:
 
 - test Plastic SCM 10.x on Windows;
-- test Unity Version Control / Unity DevOps Version Control 11.x;
+- test Unity Version Control / Unity DevOps Version Control 11.x; done for current `0.2.0` validation set;
 - test at least one cloud workspace and one on-premises or local server workspace;
 - add a fake `cm` smoke test in CI for server/tool flows without requiring credentials;
 - document command fallbacks, especially `status --includeRevId`;

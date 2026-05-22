@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.0 - 2026-05-22
+
+First stable `0.2.x` release. No functional changes from `0.2.0-alpha.1`; compatibility documentation and version metadata were updated after live validation.
+
+### Changed
+
+- Documented supported `cm` range as `10.0.16.6656` and newer.
+- Marked Unity Version Control / Unity DevOps Version Control `11.x` as tested pass in the compatibility matrix.
+- Promoted release line from `0.2.x-alpha` to stable `0.2.x`.
+
+### Tested
+
+- Plastic SCM `10.0.16.6656` and newer `10.x` builds.
+- Unity Version Control / Unity DevOps Version Control `11.x` across multiple client versions.
+
 ## 0.2.0-alpha.1 - 2026-05-17
 
 Second alpha release focused on automation style, changeset analytics, and stronger policy enforcement.

@@ -2,6 +2,8 @@
 
 UVCS MCP is a safe MCP server for Plastic SCM, Unity Version Control, and Unity DevOps Version Control source-control workspaces.
 
+Current release: `0.2.0`. Supported `cm` clients: `10.0.16.6656` and newer, including Unity Version Control `11.x`.
+
 It is not a Unity Editor MCP. It works through the official `cm` CLI and focuses on SCM workflows: status, pending changes, branches, labels, checkins, locks, diffs, merges, release planning, and changeset analytics.
 
 ## Pages

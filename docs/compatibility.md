@@ -37,12 +37,24 @@ The server does not expose arbitrary `cm` commands.
 - Keep parsing separate from process execution in `src/backend/machine-readable.js`.
 - Keep Unity-specific checks in `src/services/unity-meta.js`, not in the `cm` backend.
 
+## Supported `cm` Versions
+
+UVCS MCP targets the shared Plastic SCM / Unity Version Control `cm` CLI. The supported baseline is:
+
+- **minimum tested baseline:** `10.0.16.6656`
+- **supported range:** `10.0.16.6656` and newer, including Unity Version Control / Unity DevOps Version Control `11.x`
+
+Older `cm` builds may work when they expose the same command surface, but they are not part of the current support statement.
+
 ## Tested Matrix
 
 | Product | Version | Status | Notes |
 | --- | --- | --- | --- |
 | Plastic SCM | `10.0.16.6656` | Tested pass | Full MCP E2E smoke passed on `pas-Kodeks@SRV-IAN-N:8087`. |
-| Unity Version Control / Unity DevOps Version Control | `11.x` | Expected | Uses the same `cm` CLI surface for cloud and on-prem workspaces; needs live smoke before marking tested. |
+| Plastic SCM | `10.x` (newer than baseline) | Tested pass | Same `cm` CLI surface; validated in live workspaces. |
+| Unity Version Control / Unity DevOps Version Control | `11.x` | Tested pass | Validated across multiple `11.x` client versions in live workspaces. |
+
+Report additional tested combinations through a [compatibility issue](https://github.com/ProAnima/unity-version-control-mcp/issues/new?template=compatibility_report.yml).
 
 ## Cloud and On-Prem
 

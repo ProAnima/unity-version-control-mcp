@@ -15,7 +15,7 @@ body:
     id: cm-version
     attributes:
       label: cm version
-      placeholder: "10.0.16.6656"
+      placeholder: "10.0.16.6656 or 11.x"
     validations:
       required: true
   - type: input
