@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.3.0 - 2026-06-26
+
+Production-hardening release focused on official MCP protocol handling, CI reliability, guided project conventions, and safer branch review workflows.
+
+### Added
+
+- Official MCP TypeScript SDK transport and lifecycle handling.
+- Strict server-side tool input validation with Zod schemas.
+- Optional JSONL audit logging through `UVCS_AUDIT_LOG`.
+- Per-workspace serialization for confirm/write operations.
+- CI-safe fake `cm` MCP smoke test covering the full prepare/confirm workflow.
+- GitHub Actions matrix across Ubuntu and Windows on Node.js 20, 22, and 24.
+- Guided style setup tools:
+  - `uvcs_style_setup_check`
+  - `uvcs_style_init_prepare`
+  - `uvcs_style_init_confirm`
+- Read-only branch safety helpers:
+  - `uvcs_cleanup_candidates`
+  - `uvcs_branch_safety_report`
+- `UVCS_CM_ARGS` for safe wrapper-style command prefixes in tests and controlled environments.
+
+### Changed
+
+- Replaced the hand-written MCP JSON-RPC server layer with the official SDK.
+- Updated MCP tests to use the full initialize/initialized lifecycle.
+- Expanded test coverage for schema validation, audit logging, write serialization, style setup, cleanup candidates, and branch safety reports.
+- Documented the safer cleanup policy: agents get read-only review helpers, not branch or changeset deletion tools.
+
+### Tested
+
+- `npm test`: 43 tests passing.
+- `npm run check`.
+- `npm run smoke:fake`.
+- `npm pack --dry-run`.
+
 ## 0.2.0 - 2026-05-22
 
 First stable `0.2.x` release. No functional changes from `0.2.0-alpha.1`; compatibility documentation and version metadata were updated after live validation.

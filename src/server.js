@@ -10,7 +10,7 @@ import { auditToolCall } from "./services/audit.js";
 
 const SERVER_INFO = {
   name: "uvcs-mcp",
-  version: "0.2.0"
+  version: "0.3.0"
 };
 
 export async function startServer({ input = process.stdin, output = process.stdout } = {}) {

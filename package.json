@@ -1,6 +1,6 @@
 {
   "name": "@proanima/uvcs-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Safe MCP server for Plastic SCM and Unity Version Control (cm 10.0.16.6656+, UVCS 11.x) source-control workspaces.",
   "author": "Ian Panaev, ProAnimaStudio <proanimastudio@gmail.com>",
   "type": "module",

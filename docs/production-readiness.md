@@ -1,6 +1,6 @@
 # Production Readiness
 
-UVCS MCP is currently a stable `0.2.x` release line. The architecture is intentionally conservative, but broader production trust still requires evidence across teams, operating systems, and deployment topologies beyond the versions already validated in the field.
+UVCS MCP is currently a stable `0.3.x` release line. The architecture is intentionally conservative, but broader production trust still requires evidence across teams, operating systems, and deployment topologies beyond the versions already validated in the field.
 
 ## Current status
 
@@ -27,7 +27,7 @@ Already in place:
 Before calling the project beta:
 
 - test Plastic SCM 10.x on Windows;
-- test Unity Version Control / Unity DevOps Version Control 11.x; done for current `0.2.0` validation set;
+- test Unity Version Control / Unity DevOps Version Control 11.x; done for current `0.3.0` validation set;
 - test at least one cloud workspace and one on-premises or local server workspace;
 - keep the fake `cm` smoke test in CI for server/tool flows without requiring credentials;
 - document command fallbacks, especially `status --includeRevId`;

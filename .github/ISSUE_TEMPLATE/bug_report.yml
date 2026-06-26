@@ -13,7 +13,7 @@ body:
     attributes:
       label: UVCS MCP version
       description: Package version, tag, or commit SHA.
-      placeholder: "0.2.0"
+      placeholder: "0.3.0"
     validations:
       required: true
   - type: dropdown
