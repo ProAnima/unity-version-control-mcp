@@ -1,6 +1,6 @@
 # Production Readiness
 
-UVCS MCP is currently a stable `0.3.x` release line. The architecture is intentionally conservative, but broader production trust still requires evidence across teams, operating systems, and deployment topologies beyond the versions already validated in the field.
+UVCS MCP is currently a stable `1.0.x` release line. The architecture is intentionally conservative, and production trust is maintained through CI, fake MCP smoke coverage, strict tool policies, security review notes, and compatibility reports.
 
 ## Current status
 
@@ -17,7 +17,9 @@ Already in place:
 - optional JSONL audit logging with `UVCS_AUDIT_LOG`;
 - fake `cm` MCP smoke test for CI without Plastic SCM credentials;
 - read-only cleanup and branch safety helpers instead of destructive delete tools;
-- unit tests, syntax checks, and CI on Node.js 20, 22, and 24;
+- unit tests, ESLint, syntax checks, release metadata checks, fake smoke, and CI on Node.js 20, 22, and 24;
+- npm publishing workflow using trusted publishing/OIDC and provenance;
+- documented security review for path escape, token replay, env handling, command construction, and destructive-operation policy;
 - one full Plastic SCM E2E smoke pass on `pas-Kodeks@SRV-IAN-N:8087`;
 - live validation on Plastic SCM `10.0.16.6656+` and Unity Version Control / Unity DevOps Version Control `11.x`;
 - public install, security, compatibility, troubleshooting, support, and contribution docs.
@@ -27,25 +29,24 @@ Already in place:
 Before calling the project beta:
 
 - test Plastic SCM 10.x on Windows;
-- test Unity Version Control / Unity DevOps Version Control 11.x; done for current `0.3.0` validation set;
+- test Unity Version Control / Unity DevOps Version Control 11.x; done for current `1.0.0` validation set;
 - test at least one cloud workspace and one on-premises or local server workspace;
 - keep the fake `cm` smoke test in CI for server/tool flows without requiring credentials;
 - document command fallbacks, especially `status --includeRevId`;
 - keep `UVCS_ALLOWED_REPOS` and `UVCS_ALLOWED_WORKSPACES` behavior covered by tests;
 - keep all mutating tools behind prepare/confirm.
 
-## 1.0 criteria
+## 1.x maintenance criteria
 
-Before calling the project production-ready:
+For the `1.x` line:
 
-- publish a stable `1.0.0` npm release;
-- define supported Node.js and `cm` version ranges for 1.x;
+- publish stable npm releases from signed tags or GitHub Releases;
+- keep supported Node.js and `cm` version ranges documented;
 - keep breaking changes for major versions only;
-- maintain a compatibility matrix with at least three tested configurations;
-- run a real smoke test against a disposable workspace before releases;
+- maintain compatibility reports for real-world `cm` configurations;
 - document a recommended runbook for team workspaces;
 - collect field feedback from real Cursor, Codex, Claude, OpenCode, Kiro, or Windsurf users;
-- complete a security review focused on path escape, token replay, env injection, and command construction.
+- keep the security review current when command construction, auth, path handling, or write tools change.
 
 ## Recommended team runbook
 

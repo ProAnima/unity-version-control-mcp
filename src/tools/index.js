@@ -509,7 +509,7 @@ export function createTools({ config, backend }) {
   const byName = new Map(definitions.map((definition) => [definition.name, definition]));
 
   return {
-    list: () => definitions.map(({ handler, ...definition }) => definition),
+    list: () => definitions.map(({ handler: _handler, ...definition }) => definition),
     call: async (name, args) => {
       const definition = byName.get(name);
       if (!definition) throw new UvcsError(`Unknown tool: ${name}`, { code: "UNKNOWN_TOOL" });

@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.0.0 - 2026-06-26
+
+First production release line. This release keeps the safe MCP surface from `0.3.0`, adds static analysis and publish automation, and formalizes the 1.x support and security posture.
+
+### Added
+
+- ESLint static analysis with `npm run lint`.
+- Release metadata validation with `npm run release:check`.
+- GitHub Actions npm publish workflow using trusted publishing/OIDC and provenance.
+- Security review notes covering path confinement, confirm-token replay, environment handling, command construction, and destructive-operation policy.
+- 1.x production readiness documentation and npm publishing runbook.
+
+### Changed
+
+- CI now runs tests, lint, syntax checks, release metadata checks, fake MCP smoke, and npm pack dry-run across Ubuntu and Windows on Node.js 20, 22, and 24.
+- The project is now documented as the stable `1.0.x` release line.
+
+### Tested
+
+- `npm test`: 43 tests passing.
+- `npm run lint`.
+- `npm run check`.
+- `npm run release:check`.
+- `npm run smoke:fake`.
+- `npm pack --dry-run`.
+
 ## 0.3.0 - 2026-06-26
 
 Production-hardening release focused on official MCP protocol handling, CI reliability, guided project conventions, and safer branch review workflows.
