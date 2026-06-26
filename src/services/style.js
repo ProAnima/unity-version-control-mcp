@@ -25,6 +25,84 @@ export const DEFAULT_STYLE = {
   }
 };
 
+export async function styleSetupGuide(workspace) {
+  const loaded = await loadStyleConfig(workspace);
+  const configured = loaded.source === "workspace";
+  return {
+    configured,
+    source: loaded.source,
+    path: loaded.path,
+    style: loaded.style,
+    recommendedNextStep: configured
+      ? "Use uvcs_name_preview before creating branches or checkins."
+      : "Ask the user whether to create workspace style rules, then call uvcs_style_init_prepare if they agree.",
+    suggestedQuestion: configured
+      ? null
+      : "I do not see workspace style rules yet. Should I create .uvcs-mcp/style.json with branch naming, checkin message, and release conventions for this project?",
+    setupTool: configured ? null : "uvcs_style_init_prepare",
+    presets: ["unity", "conventional", "minimal"]
+  };
+}
+
+export async function createStyleInitPlan({ workspace, preset = "unity", baseBranch, branchPrefix, versionFile, overwrite = false }) {
+  const loaded = await loadStyleConfig(workspace);
+  if (loaded.source === "workspace" && !overwrite) {
+    throw new UvcsError("Workspace style rules already exist. Pass overwrite=true to replace them.", {
+      code: "STYLE_CONFIG_EXISTS",
+      details: { path: loaded.path }
+    });
+  }
+
+  const style = createStylePreset({
+    preset,
+    baseBranch,
+    branchPrefix,
+    versionFile
+  });
+  const primaryBranchType = style.branches.allowedTypes[0];
+  const secondaryBranchType = style.branches.allowedTypes.includes("fix") ? "fix" : primaryBranchType;
+  const primaryCheckinType = style.checkins.allowedTypes[0];
+
+  return {
+    path: loaded.path,
+    overwrite,
+    style,
+    preview: {
+      primaryBranch: previewBranchName({ style, type: primaryBranchType, title: "Add Inventory UI" }),
+      fixBranch: previewBranchName({ style, type: secondaryBranchType, title: "Repair Save Flow" }),
+      checkinMessage: previewCheckinMessage({ style, type: primaryCheckinType, summary: "add inventory UI" }),
+      releaseBranch: renderPattern(style.release.branchPattern, {
+        baseBranch: style.release.baseBranch,
+        version: "1.2.3"
+      }),
+      releaseLabel: renderPattern(style.release.labelPattern, { version: "1.2.3" })
+    },
+    suggestedUserConfirmation: "These rules will be written to .uvcs-mcp/style.json and used by UVCS MCP naming tools."
+  };
+}
+
+export async function writeStyleConfig({ workspace, style, overwrite }) {
+  const stylePath = path.join(workspace, ".uvcs-mcp", "style.json");
+  await fs.mkdir(path.dirname(stylePath), { recursive: true });
+  if (!overwrite) {
+    try {
+      await fs.stat(stylePath);
+      throw new UvcsError("Workspace style rules already exist", {
+        code: "STYLE_CONFIG_EXISTS",
+        details: { path: stylePath }
+      });
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }
+  await fs.writeFile(stylePath, `${JSON.stringify(style, null, 2)}\n`, "utf8");
+  return {
+    path: stylePath,
+    source: "workspace",
+    style
+  };
+}
+
 export async function loadStyleConfig(workspace) {
   const stylePath = path.join(workspace, ".uvcs-mcp", "style.json");
   try {
@@ -51,6 +129,75 @@ export async function loadStyleConfig(workspace) {
     }
     throw error;
   }
+}
+
+function createStylePreset({ preset, baseBranch, branchPrefix, versionFile }) {
+  const releaseBaseBranch = normalizeBaseBranch(baseBranch ?? DEFAULT_STYLE.release.baseBranch);
+  const safeBranchPrefix = normalizeBranchPrefix(branchPrefix ?? "");
+  const safeVersionFile = normalizeVersionFile(versionFile ?? DEFAULT_STYLE.release.versionFile);
+  const branchPattern = safeBranchPrefix
+    ? "{baseBranch}/{type}/{branchPrefix}{slug}"
+    : "{baseBranch}/{type}/{slug}";
+
+  const base = {
+    ...DEFAULT_STYLE,
+    release: {
+      ...DEFAULT_STYLE.release,
+      baseBranch: releaseBaseBranch,
+      versionFile: safeVersionFile
+    },
+    branches: {
+      ...DEFAULT_STYLE.branches,
+      branchPattern
+    }
+  };
+
+  if (preset === "unity") {
+    return {
+      ...base,
+      branches: {
+        ...base.branches,
+        branchPrefix: safeBranchPrefix
+      }
+    };
+  }
+
+  if (preset === "conventional") {
+    return {
+      ...base,
+      branches: {
+        ...base.branches,
+        branchPrefix: safeBranchPrefix,
+        allowedTypes: ["feat", "fix", "refactor", "docs", "test", "chore", "release", "hotfix"]
+      },
+      checkins: {
+        ...base.checkins,
+        allowedTypes: ["feat", "fix", "refactor", "docs", "test", "chore", "release"]
+      }
+    };
+  }
+
+  if (preset === "minimal") {
+    return {
+      ...base,
+      branches: {
+        ...base.branches,
+        branchPrefix: safeBranchPrefix,
+        allowedTypes: ["work", "fix", "release"],
+        branchPattern: safeBranchPrefix ? "{baseBranch}/{branchPrefix}{slug}" : "{baseBranch}/{slug}"
+      },
+      checkins: {
+        ...base.checkins,
+        allowedTypes: ["change", "fix", "release"],
+        messagePattern: "{summary}"
+      }
+    };
+  }
+
+  throw new UvcsError("preset must be unity, conventional, or minimal", {
+    code: "INVALID_STYLE_PRESET",
+    details: { preset }
+  });
 }
 
 export async function createReleasePlan({ workspace, releaseType, currentVersion }) {
@@ -96,6 +243,7 @@ export function previewBranchName({ style, baseBranch, type, title }) {
   return renderPattern(style.branches.branchPattern, {
     baseBranch: baseBranch ?? style.release.baseBranch,
     type: branchType,
+    branchPrefix: style.branches.branchPrefix ?? "",
     slug
   });
 }
@@ -181,6 +329,37 @@ function renderPattern(pattern, values) {
     }
     return String(values[key]);
   });
+}
+
+function normalizeBaseBranch(value) {
+  if (typeof value !== "string" || !/^\/?[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/.test(value)) {
+    throw new UvcsError("baseBranch must be a safe branch path such as /main", {
+      code: "INVALID_STYLE_INPUT",
+      details: { baseBranch: value }
+    });
+  }
+  return value.startsWith("/") ? value : `/${value}`;
+}
+
+function normalizeBranchPrefix(value) {
+  if (typeof value !== "string" || !/^[A-Za-z0-9._-]*$/.test(value)) {
+    throw new UvcsError("branchPrefix may contain only letters, numbers, dot, underscore, or dash", {
+      code: "INVALID_STYLE_INPUT",
+      details: { branchPrefix: value }
+    });
+  }
+  return value;
+}
+
+function normalizeVersionFile(value) {
+  const safeRelative = typeof value === "string" && value.length > 0 && !path.isAbsolute(value) && !value.includes("..");
+  if (!safeRelative) {
+    throw new UvcsError("versionFile must be a safe relative path", {
+      code: "INVALID_STYLE_INPUT",
+      details: { versionFile: value }
+    });
+  }
+  return value;
 }
 
 function assertAllowed(value, allowed, name) {

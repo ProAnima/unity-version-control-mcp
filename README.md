@@ -120,6 +120,8 @@ Manual MCP block:
 - `uvcs_locks`
 - `uvcs_unity_meta_diagnostics`
 - `uvcs_style_rules`
+- `uvcs_style_setup_check`
+- `uvcs_style_init_prepare` / `uvcs_style_init_confirm`
 - `uvcs_name_preview`
 - `uvcs_release_plan`
 - `uvcs_diff_file`

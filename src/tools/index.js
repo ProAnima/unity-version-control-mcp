@@ -11,9 +11,12 @@ import { unityMetaDiagnostics } from "../services/unity-meta.js";
 import { changesetAnalytics } from "../services/analytics.js";
 import {
   createReleasePlan,
+  createStyleInitPlan,
   loadStyleConfig,
   previewBranchName,
-  previewCheckinMessage
+  previewCheckinMessage,
+  styleSetupGuide,
+  writeStyleConfig
 } from "../services/style.js";
 import { UvcsError } from "../backend/errors.js";
 
@@ -43,6 +46,57 @@ export function createTools({ config, backend }) {
     tool("uvcs_style_rules", "Return workspace naming and release style rules.", {}, async () => {
       await assertWorkspacePolicy(config, backend);
       return await loadStyleConfig(config.workspace);
+    }),
+    tool(
+      "uvcs_style_setup_check",
+      "Check whether workspace naming/checkin/release style rules exist. If missing, guide the model to ask the user to create them before branch work.",
+      {},
+      async () => {
+        await assertWorkspacePolicy(config, backend);
+        return await styleSetupGuide(config.workspace);
+      }
+    ),
+    ...prepareConfirmTool({
+      config,
+      backend,
+      name: "uvcs_style_init",
+      description: "Create .uvcs-mcp/style.json with branch naming, checkin message, and release conventions. Requires prepare/confirm.",
+      properties: {
+        preset: {
+          type: "string",
+          enum: ["unity", "conventional", "minimal"],
+          description: "Style preset. unity is recommended for Unity teams."
+        },
+        baseBranch: {
+          type: "string",
+          description: "Base branch for generated branches, for example /main or /main/dev."
+        },
+        branchPrefix: {
+          type: "string",
+          description: "Optional safe prefix before branch slugs, for example PROJ-."
+        },
+        versionFile: {
+          type: "string",
+          description: "Optional relative version file used by release planning, for example ProjectSettings/ProjectVersion.txt."
+        },
+        overwrite: {
+          type: "boolean",
+          description: "Set true only when replacing an existing .uvcs-mcp/style.json."
+        }
+      },
+      required: [],
+      action: "style_init",
+      confirmPhrase: "confirm uvcs style init",
+      prepare: async (args) => {
+        await assertWorkspacePolicy(config, backend);
+        assertStandardMode(config);
+        return await createStyleInitPlan({ workspace: config.workspace, ...args });
+      },
+      confirm: async (payload) => await writeStyleConfig({
+        workspace: config.workspace,
+        style: payload.style,
+        overwrite: payload.overwrite
+      })
     }),
     tool(
       "uvcs_name_preview",

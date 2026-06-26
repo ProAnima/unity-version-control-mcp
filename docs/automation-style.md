@@ -6,7 +6,7 @@ UVCS MCP can read optional naming rules from:
 .uvcs-mcp/style.json
 ```
 
-If the file is missing, the server uses built-in defaults. These tools are read-only and help agents produce consistent branch names, checkin comments, release branch names, labels, and review windows before running any write tools.
+If the file is missing, the server uses built-in defaults. The setup tools help agents notice missing project conventions and ask the user whether to create them. Preview and planning tools help agents produce consistent branch names, checkin comments, release branch names, labels, and review windows before running any write tools.
 
 ## Default style
 
@@ -48,6 +48,46 @@ Input:
 ```
 
 Use when an agent needs to inspect naming rules before creating a branch, checkin, label, or release plan.
+
+### `uvcs_style_setup_check`
+
+Checks whether `.uvcs-mcp/style.json` exists. If it is missing, the response includes a suggested question the model should ask the user before branch or release work.
+
+Input:
+
+```json
+{}
+```
+
+Recommended first-run behavior:
+
+```text
+uvcs_style_setup_check
+ask the user whether to create project naming rules
+uvcs_style_init_prepare
+uvcs_style_init_confirm
+```
+
+### `uvcs_style_init_prepare` / `uvcs_style_init_confirm`
+
+Creates `.uvcs-mcp/style.json` from a preset. This is a guarded write operation and requires `UVCS_MCP_MODE=standard`, a prepare token, and the returned confirm phrase.
+
+Prepare input:
+
+```json
+{
+  "preset": "unity",
+  "baseBranch": "/main",
+  "branchPrefix": "PROJ-",
+  "versionFile": "ProjectSettings/ProjectVersion.txt"
+}
+```
+
+Presets:
+
+- `unity`: Unity-friendly defaults using feature/fix/release branch types and conventional checkin prefixes.
+- `conventional`: conventional-commit-like branch and checkin types.
+- `minimal`: small teams that want simple branch and message rules.
 
 ### `uvcs_name_preview`
 
@@ -170,6 +210,9 @@ The tool returns:
 Recommended for the next minor release:
 
 - `uvcs_style_rules`
+- `uvcs_style_setup_check`
+- `uvcs_style_init_prepare`
+- `uvcs_style_init_confirm`
 - `uvcs_name_preview`
 - `uvcs_release_plan`
 - `uvcs_changeset_analytics`
@@ -180,6 +223,6 @@ Keep as future work:
 - full release branch creation in one tool;
 - changelog generation;
 - merge risk scoring;
-- per-repository style presets.
+- additional per-repository style presets.
 
-The current implementation intentionally keeps style and analytics tools read-only. Actual branch creation, checkin, label creation, and merge still go through existing prepare/confirm tools.
+Actual branch creation, checkin, label creation, and merge still go through existing prepare/confirm tools. Style initialization also uses prepare/confirm because it writes `.uvcs-mcp/style.json`.
