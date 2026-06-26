@@ -69,6 +69,15 @@ export function findChangesetsCommand({ query, format }) {
   };
 }
 
+export function findBranchesCommand({ query, format }) {
+  const args = ["find", "branch", query, `--format=${format}`, "--nototal"];
+  return {
+    args,
+    requireWorkspace: true,
+    mutation: false
+  };
+}
+
 export function diffFileCommand(filePath) {
   return {
     args: ["diff", filePath],

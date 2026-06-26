@@ -125,6 +125,8 @@ Manual MCP block:
 - `uvcs_name_preview`
 - `uvcs_release_plan`
 - `uvcs_diff_file`
+- `uvcs_cleanup_candidates`
+- `uvcs_branch_safety_report`
 - `uvcs_update_workspace_prepare` / `uvcs_update_workspace_confirm`
 - `uvcs_changeset_analytics`
 - `uvcs_add_prepare` / `uvcs_add_confirm`

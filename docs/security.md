@@ -38,6 +38,8 @@ Use semicolons for multiple entries.
 
 Tool failures are returned to MCP clients as `isError` tool results with a stable error code, details, and a short remediation hint.
 
+Cleanup helpers such as `uvcs_cleanup_candidates` and `uvcs_branch_safety_report` are read-only. They provide manual review guidance and do not delete branches, changesets, labels, or files.
+
 ## Audit logging
 
 Set `UVCS_AUDIT_LOG` to a local JSONL file path to record tool call audit events:

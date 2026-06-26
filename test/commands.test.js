@@ -7,6 +7,7 @@ import {
   branchCreateCommand,
   checkinCommand,
   diffFileCommand,
+  findBranchesCommand,
   findChangesetsCommand,
   labelCreateCommand,
   mergeCommand,
@@ -28,6 +29,10 @@ test("critical cm commands use documented command names and safe argv arrays", (
   assert.deepEqual(
     findChangesetsCommand({ query: "where date >= '2026/01/01' order by date desc limit 25", format: "{changesetid}" }).args,
     ["find", "changeset", "where date >= '2026/01/01' order by date desc limit 25", "--format={changesetid}", "--nototal"]
+  );
+  assert.deepEqual(
+    findBranchesCommand({ query: "where name like 'main/tmp/%' order by date desc limit 25", format: "{name}" }).args,
+    ["find", "branch", "where name like 'main/tmp/%' order by date desc limit 25", "--format={name}", "--nototal"]
   );
 
   for (const spec of Object.values(CM_COMMANDS)) {

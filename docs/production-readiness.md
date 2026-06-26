@@ -16,6 +16,7 @@ Already in place:
 - workspace and repository allowlists;
 - optional JSONL audit logging with `UVCS_AUDIT_LOG`;
 - fake `cm` MCP smoke test for CI without Plastic SCM credentials;
+- read-only cleanup and branch safety helpers instead of destructive delete tools;
 - unit tests, syntax checks, and CI on Node.js 20, 22, and 24;
 - one full Plastic SCM E2E smoke pass on `pas-Kodeks@SRV-IAN-N:8087`;
 - live validation on Plastic SCM `10.0.16.6656+` and Unity Version Control / Unity DevOps Version Control `11.x`;
@@ -56,6 +57,7 @@ Before calling the project production-ready:
 - Set `UVCS_ALLOWED_REPOS` when the workspace should never point to another repository/server.
 - Set `UVCS_AUDIT_LOG` for release-manager or shared-agent checkouts.
 - Require explicit user approval before any `*_confirm` tool call.
+- Use `uvcs_cleanup_candidates` and `uvcs_branch_safety_report` for manual cleanup review instead of exposing branch or changeset deletion to agents.
 
 ## Not in scope for 1.0
 

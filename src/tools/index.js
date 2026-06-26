@@ -9,6 +9,7 @@ import {
 import { runDoctorService } from "../services/doctor.js";
 import { unityMetaDiagnostics } from "../services/unity-meta.js";
 import { changesetAnalytics } from "../services/analytics.js";
+import { branchSafetyReport, cleanupCandidates } from "../services/safety.js";
 import {
   createReleasePlan,
   createStyleInitPlan,
@@ -232,6 +233,50 @@ export function createTools({ config, backend }) {
       async (args) => {
         await assertWorkspacePolicy(config, backend);
         return await changesetAnalytics({ backend, ...args });
+      }
+    ),
+    tool(
+      "uvcs_cleanup_candidates",
+      "Read-only helper that lists temporary/agent branch cleanup candidates for manual review. It never deletes branches or changesets.",
+      {
+        patterns: {
+          type: "string",
+          description: "Optional semicolon-separated branch prefixes to inspect, for example /main/tmp;/main/agent."
+        },
+        maxResults: {
+          type: "number",
+          description: "Maximum branches to return, from 1 to 200. Default: 50."
+        }
+      },
+      async ({ patterns, maxResults }) => {
+        await assertWorkspacePolicy(config, backend);
+        return await cleanupCandidates({
+          backend,
+          patterns: patterns ? patterns.split(";") : undefined,
+          maxResults: maxResults ?? 50
+        });
+      }
+    ),
+    tool(
+      "uvcs_branch_safety_report",
+      "Read-only helper that reports current branch, pending changes, and recent changesets before risky branch, merge, or cleanup work.",
+      {
+        branch: {
+          type: "string",
+          description: "Optional branch to inspect. Defaults to the current workspace branch."
+        },
+        recentChangesets: {
+          type: "number",
+          description: "Recent changesets to include, from 1 to 50. Default: 10."
+        }
+      },
+      async ({ branch, recentChangesets }) => {
+        await assertWorkspacePolicy(config, backend);
+        return await branchSafetyReport({
+          backend,
+          branch,
+          recentChangesets: recentChangesets ?? 10
+        });
       }
     ),
     ...prepareConfirmTool({

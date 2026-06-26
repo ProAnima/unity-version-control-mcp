@@ -43,6 +43,24 @@ function main() {
     return;
   }
 
+  if (command === "find" && subcommand === "branch") {
+    write([
+      `main/tmp/old-cleanup${FIELD_SEPARATOR}2026-01-01${FIELD_SEPARATOR}agent${FIELD_SEPARATOR}temporary branch`,
+      `main/agent/e2e-work${FIELD_SEPARATOR}2026-01-02${FIELD_SEPARATOR}agent${FIELD_SEPARATOR}agent branch`,
+      ""
+    ].join("\n"));
+    return;
+  }
+
+  if (command === "find" && subcommand === "changeset") {
+    const state = readState();
+    write([
+      `${state.changeset}${FIELD_SEPARATOR}${state.branch}${FIELD_SEPARATOR}2026-01-03${FIELD_SEPARATOR}agent${FIELD_SEPARATOR}fake changeset`,
+      ""
+    ].join("\n"));
+    return;
+  }
+
   if (command === "branch" && subcommand === "create") {
     write(`Created branch ${args[2]}\n`);
     return;
