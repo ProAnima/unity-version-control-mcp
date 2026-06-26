@@ -1,8 +1,12 @@
-import readline from "node:readline";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import * as z from "zod/v4";
 import { loadConfig } from "./config/env.js";
 import { createCmBackend } from "./backend/cm.js";
 import { createTools } from "./tools/index.js";
 import { toolFailure, toolSuccess } from "./server/tool-result.js";
+import { withWorkspaceWriteLock } from "./server/write-lock.js";
+import { auditToolCall } from "./services/audit.js";
 
 const SERVER_INFO = {
   name: "uvcs-mcp",
@@ -10,110 +14,97 @@ const SERVER_INFO = {
 };
 
 export async function startServer({ input = process.stdin, output = process.stdout } = {}) {
-  const config = loadConfig(process.env);
+  const server = createMcpServer();
+  const transport = new StdioServerTransport(input, output);
+  await server.connect(transport);
+  return server;
+}
+
+export function createMcpServer(env = process.env) {
+  const config = loadConfig(env);
   const backend = createCmBackend(config);
   const tools = createTools({ config, backend });
+  const server = new McpServer(SERVER_INFO);
 
-  const rl = readline.createInterface({ input, crlfDelay: Infinity });
-
-  rl.on("line", async (line) => {
-    if (!line.trim()) return;
-
-    let request;
-    try {
-      request = JSON.parse(line);
-    } catch (error) {
-      writeJson(output, jsonError(null, -32700, "Parse error", error.message));
-      return;
-    }
-
-    try {
-      const response = await handleRequest(request, tools);
-      if (response) writeJson(output, response);
-    } catch (error) {
-      writeJson(output, errorToJsonRpc(request.id ?? null, error));
-    }
-  });
-}
-
-async function handleRequest(request, tools) {
-  const { id, method, params } = request;
-
-  if (method === "initialize") {
-    return {
-      jsonrpc: "2.0",
-      id,
-      result: {
-        protocolVersion: params?.protocolVersion ?? "2024-11-05",
-        capabilities: {
-          tools: {}
-        },
-        serverInfo: SERVER_INFO
+  for (const definition of tools.list()) {
+    server.registerTool(
+      definition.name,
+      {
+        description: definition.description,
+        inputSchema: zodObjectFromJsonSchema(definition.inputSchema)
+      },
+      async (args) => {
+        const startedAt = Date.now();
+        try {
+          const run = async () => toolSuccess(await tools.call(definition.name, args ?? {}));
+          const result = isConfirmTool(definition.name)
+            ? await withWorkspaceWriteLock(config.workspace, run)
+            : await run();
+          await safeAudit(config, {
+            tool: definition.name,
+            ok: !result.isError,
+            durationMs: Date.now() - startedAt
+          });
+          return result;
+        } catch (error) {
+          const result = toolFailure(error);
+          await safeAudit(config, {
+            tool: definition.name,
+            ok: false,
+            durationMs: Date.now() - startedAt,
+            errorCode: error?.code ?? "UNEXPECTED_ERROR"
+          });
+          return result;
+        }
       }
-    };
+    );
   }
 
-  if (method === "notifications/initialized") {
-    return null;
-  }
+  return server;
+}
 
-  if (method === "tools/list") {
-    return {
-      jsonrpc: "2.0",
-      id,
-      result: {
-        tools: tools.list()
-      }
-    };
-  }
+function isConfirmTool(name) {
+  return name.endsWith("_confirm");
+}
 
-  if (method === "tools/call") {
-    const toolName = params?.name;
-    const toolArgs = params?.arguments ?? {};
-    let result;
-    try {
-      result = toolSuccess(await tools.call(toolName, toolArgs));
-    } catch (error) {
-      result = toolFailure(error);
+async function safeAudit(config, event) {
+  try {
+    await auditToolCall(config, event);
+  } catch (error) {
+    process.stderr.write(`[uvcs-mcp] audit log failed: ${error?.message ?? error}\n`);
+  }
+}
+
+function zodObjectFromJsonSchema(schema) {
+  const properties = schema?.properties ?? {};
+  const required = new Set(schema?.required ?? []);
+  const shape = Object.fromEntries(
+    Object.entries(properties).map(([name, propertySchema]) => {
+      const field = zodFieldFromJsonSchema(propertySchema);
+      return [name, required.has(name) ? field : field.optional()];
+    })
+  );
+  return z.object(shape).strict();
+}
+
+function zodFieldFromJsonSchema(schema = {}) {
+  let field;
+  if (schema.enum) {
+    field = z.enum(schema.enum);
+  } else {
+    switch (schema.type) {
+      case "number":
+        field = z.number();
+        break;
+      case "boolean":
+        field = z.boolean();
+        break;
+      case "string":
+      default:
+        field = z.string();
+        break;
     }
-    return {
-      jsonrpc: "2.0",
-      id,
-      result
-    };
   }
 
-  if (method === "ping") {
-    return { jsonrpc: "2.0", id, result: {} };
-  }
-
-  return jsonError(id ?? null, -32601, "Method not found", method);
-}
-
-function writeJson(output, payload) {
-  output.write(`${JSON.stringify(payload)}\n`);
-}
-
-function jsonError(id, code, message, details) {
-  return {
-    jsonrpc: "2.0",
-    id,
-    error: {
-      code,
-      message,
-      data: details
-    }
-  };
-}
-
-function errorToJsonRpc(id, error) {
-  const knownCode = error?.code;
-  if (knownCode) {
-    return jsonError(id, -32000, error.message, {
-      code: knownCode,
-      details: error.details
-    });
-  }
-
-  return jsonError(id, -32603, "Internal error", error?.message ?? String(error));
+  return schema.description ? field.describe(schema.description) : field;
 }

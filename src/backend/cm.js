@@ -85,7 +85,7 @@ export async function runCmSpec(config, spec) {
     });
   }
 
-  return await runProcess(config.cmPath, spec.args, {
+  return await runProcess(config.cmPath, [...(config.cmArgs ?? []), ...spec.args], {
     cwd: config.workspace || process.cwd(),
     allowFailure: spec.allowFailure,
     timeoutMs: spec.timeoutMs,

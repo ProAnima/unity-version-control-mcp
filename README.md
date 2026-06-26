@@ -103,9 +103,13 @@ Manual MCP block:
 ## Safety Model
 
 - Default mode is `readonly`.
+- Protocol handling is provided by the official MCP TypeScript SDK.
+- Tool input is validated server-side with strict schemas.
 - Write tools require `UVCS_MCP_MODE=standard`.
 - Critical write operations use `*_prepare` followed by matching `*_confirm`.
+- Write confirmations are serialized per workspace.
 - Repository delete, repository rename, arbitrary `cm`, arbitrary shell execution, and raw `cm api` startup are not exposed.
+- Optional JSONL audit logging is available with `UVCS_AUDIT_LOG=/path/to/uvcs-mcp-audit.jsonl`.
 
 ## Tools
 
@@ -133,6 +137,7 @@ Manual MCP block:
 ```bash
 npm test
 npm run check
+npm run smoke:fake
 ```
 
 Run the real Plastic SCM smoke test against a disposable or safe workspace:

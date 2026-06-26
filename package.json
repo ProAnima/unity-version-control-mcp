@@ -41,9 +41,10 @@
     "setup:cursor": "node src/cli.js init-local --client=cursor",
     "setup:codex": "node src/cli.js init-local --client=codex",
     "setup:all": "node src/cli.js init-local --client=all",
+    "smoke:fake": "node scripts/mcp-smoke-fake.js",
     "smoke:plastic": "node scripts/mcp-smoke-plastic.js",
     "test": "node --test",
-    "check": "node --check src/cli.js && node --check src/server.js && node --check src/server/tool-result.js && node --check src/backend/cm.js && node --check src/backend/commands.js && node --check src/backend/errors.js && node --check src/backend/machine-readable.js && node --check src/backend/process-runner.js && node --check src/cli/init.js && node --check src/cli/doctor.js && node --check src/platform/paths.js && node --check src/services/doctor.js && node --check src/services/unity-meta.js && node --check src/services/style.js && node --check src/services/analytics.js && node --check src/tools/index.js && node --check src/policy/policy.js && node --check src/config/env.js && node --check scripts/mcp-smoke-plastic.js"
+    "check": "node --check src/cli.js && node --check src/server.js && node --check src/server/tool-result.js && node --check src/server/write-lock.js && node --check src/backend/cm.js && node --check src/backend/commands.js && node --check src/backend/errors.js && node --check src/backend/machine-readable.js && node --check src/backend/process-runner.js && node --check src/cli/init.js && node --check src/cli/doctor.js && node --check src/platform/paths.js && node --check src/services/audit.js && node --check src/services/doctor.js && node --check src/services/unity-meta.js && node --check src/services/style.js && node --check src/services/analytics.js && node --check src/tools/index.js && node --check src/policy/policy.js && node --check src/config/env.js && node --check scripts/fake-cm.js && node --check scripts/mcp-smoke-fake.js && node --check scripts/mcp-smoke-plastic.js"
   },
   "keywords": [
     "mcp",
@@ -65,5 +66,9 @@
     "opencode",
     "kiro"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.0.0"
+  }
 }

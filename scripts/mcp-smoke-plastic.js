@@ -41,6 +41,16 @@ readline.createInterface({ input: server.stdout, crlfDelay: Infinity }).on("line
 });
 
 try {
+  await request("initialize", {
+    protocolVersion: "2025-06-18",
+    capabilities: {},
+    clientInfo: {
+      name: "uvcs-mcp-smoke-plastic",
+      version: "0.0.0"
+    }
+  });
+  notify("notifications/initialized", {});
+
   const doctor = await callTool("uvcs_doctor", {});
   if (!doctor.statusOk) {
     throw new Error(`Doctor failed: ${JSON.stringify(doctor, null, 2)}`);
@@ -142,6 +152,10 @@ async function request(method, params) {
   });
   server.stdin.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
   return await promise;
+}
+
+function notify(method, params) {
+  server.stdin.write(JSON.stringify({ jsonrpc: "2.0", method, params }) + "\n");
 }
 
 function parseChangeset(text) {
