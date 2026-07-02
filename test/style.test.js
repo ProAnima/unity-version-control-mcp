@@ -27,6 +27,45 @@ test("release plan uses default style and explicit current version", async () =>
   assert.equal(plan.checkinMessage, "release: prepare v1.3.0");
 });
 
+test("release plan supports explicit release version and project name placeholders", async () => {
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "uvcs-mcp-style-"));
+  await fs.mkdir(path.join(workspace, ".uvcs-mcp"));
+  await fs.writeFile(path.join(workspace, ".uvcs-mcp", "style.json"), JSON.stringify({
+    release: {
+      branchPattern: "/{releaseVersion} {projectName}",
+      labelPattern: "{projectName}-{releaseVersion}",
+      branchCommentPattern: "Release {releaseVersion} {projectName}",
+      labelCommentPattern: "Release {releaseVersion} {projectName}",
+      checkinMessagePattern: "Prepare {releaseVersion} {projectName}"
+    }
+  }), "utf8");
+
+  const plan = await createReleasePlan({
+    workspace,
+    releaseVersion: "2.1",
+    projectName: "hp-kidalki"
+  });
+
+  assert.equal(plan.releaseVersion, "2.1");
+  assert.equal(plan.projectName, "hp-kidalki");
+  assert.equal(plan.branch, "/2.1 hp-kidalki");
+  assert.equal(plan.label, "hp-kidalki-2.1");
+  assert.equal(plan.checkinMessage, "Prepare 2.1 hp-kidalki");
+});
+
+test("release plan validates project names used by style placeholders", async () => {
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "uvcs-mcp-style-"));
+
+  await assert.rejects(
+    () => createReleasePlan({
+      workspace,
+      releaseVersion: "2.1",
+      projectName: "HP Kidalki"
+    }),
+    /projectName/
+  );
+});
+
 test("style config customizes branch and checkin previews", async () => {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "uvcs-mcp-style-"));
   await fs.mkdir(path.join(workspace, ".uvcs-mcp"));
@@ -56,6 +95,51 @@ test("style config customizes branch and checkin previews", async () => {
     type: "feat",
     summary: "add release automation"
   }), "[feat] add release automation");
+});
+
+test("style config can extend a central policy above the workspace", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "uvcs-mcp-style-root-"));
+  const workspace = path.join(root, "Project");
+  const centralStyleDir = path.join(root, ".uvcs-mcp");
+  const workspaceStyleDir = path.join(workspace, ".uvcs-mcp");
+  await fs.mkdir(centralStyleDir, { recursive: true });
+  await fs.mkdir(workspaceStyleDir, { recursive: true });
+  await fs.writeFile(path.join(centralStyleDir, "style.json"), JSON.stringify({
+    release: {
+      baseBranch: "/main"
+    },
+    branches: {
+      branchPattern: "{baseBranch}/{type}/{slug}",
+      allowedTypes: ["feature"]
+    },
+    checkins: {
+      messagePattern: "{summary}",
+      allowedTypes: ["fix"]
+    },
+    workflowRules: {
+      releaseWorkflow: {
+        releaseBranchFormat: "/{releaseVersion} {projectName}"
+      }
+    }
+  }), "utf8");
+  await fs.writeFile(path.join(workspaceStyleDir, "style.json"), JSON.stringify({
+    extends: "../../.uvcs-mcp/style.json"
+  }), "utf8");
+
+  const loaded = await loadStyleConfig(workspace);
+  assert.equal(loaded.source, "workspace");
+  assert.equal(loaded.extendsPath, path.join(centralStyleDir, "style.json"));
+  assert.equal(previewBranchName({
+    style: loaded.style,
+    type: "feature",
+    title: "Auto Updates Without Schedule"
+  }), "/main/feature/auto-updates-without-schedule");
+  assert.equal(previewCheckinMessage({
+    style: loaded.style,
+    type: "fix",
+    summary: "Исправлена работа автообновления"
+  }), "Исправлена работа автообновления");
+  assert.equal(loaded.style.workflowRules.releaseWorkflow.releaseBranchFormat, "/{releaseVersion} {projectName}");
 });
 
 test("style setup guide asks the model to propose workspace rules when missing", async () => {

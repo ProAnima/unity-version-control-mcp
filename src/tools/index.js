@@ -155,18 +155,26 @@ export function createTools({ config, backend }) {
         releaseType: {
           type: "string",
           enum: ["major", "minor", "patch"],
-          description: "Semantic version bump type."
+          description: "Optional semantic version bump type. Required when releaseVersion is omitted."
         },
         currentVersion: {
           type: "string",
           description: "Optional semantic version. If omitted, the style versionFile is read from the workspace."
+        },
+        releaseVersion: {
+          type: "string",
+          description: "Optional explicit release version for styles that use a user-provided version, for example 2.1."
+        },
+        projectName: {
+          type: "string",
+          description: "Optional safe lowercase project code for release patterns that use {projectName}, for example hp-kidalki."
         }
       },
-      async ({ releaseType, currentVersion }) => {
+      async ({ releaseType, currentVersion, releaseVersion, projectName }) => {
         await assertWorkspacePolicy(config, backend);
-        return await createReleasePlan({ workspace: config.workspace, releaseType, currentVersion });
+        return await createReleasePlan({ workspace: config.workspace, releaseType, currentVersion, releaseVersion, projectName });
       },
-      ["releaseType"]
+      []
     ),
     tool(
       "uvcs_diff_file",
@@ -619,8 +627,10 @@ function assertOptionalSingleLine(value, name) {
 }
 
 function assertBranchSpec(branch) {
-  if (typeof branch !== "string" || !/^\/?[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/.test(branch)) {
-    throw new UvcsError("Branch must be a safe branch path such as /main or /main/task-name", {
+  const safeSegment = "[A-Za-z0-9._-]+(?: [A-Za-z0-9._-]+)*";
+  const safeBranchPath = new RegExp(`^/?${safeSegment}(?:/${safeSegment})*$`);
+  if (typeof branch !== "string" || !safeBranchPath.test(branch)) {
+    throw new UvcsError("Branch must be a safe branch path such as /main, /main/task-name, or /2.1 project-name", {
       code: "INVALID_BRANCH_SPEC",
       details: { branch }
     });

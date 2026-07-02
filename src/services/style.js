@@ -106,12 +106,12 @@ export async function writeStyleConfig({ workspace, style, overwrite }) {
 export async function loadStyleConfig(workspace) {
   const stylePath = path.join(workspace, ".uvcs-mcp", "style.json");
   try {
-    const text = await fs.readFile(stylePath, "utf8");
-    const parsed = JSON.parse(text);
+    const loaded = await loadStyleConfigFile(stylePath, new Set());
     return {
       path: stylePath,
       source: "workspace",
-      style: mergeStyle(DEFAULT_STYLE, parsed)
+      extendsPath: loaded.extendsPath,
+      style: loaded.style
     };
   } catch (error) {
     if (error?.code === "ENOENT") {
@@ -121,14 +121,65 @@ export async function loadStyleConfig(workspace) {
         style: DEFAULT_STYLE
       };
     }
+    throw error;
+  }
+}
+
+async function loadStyleConfigFile(stylePath, seen) {
+  const normalizedPath = path.resolve(stylePath);
+  if (seen.has(normalizedPath)) {
+    throw new UvcsError("Style config extends cycle detected", {
+      code: "INVALID_STYLE_CONFIG",
+      details: { path: normalizedPath }
+    });
+  }
+  seen.add(normalizedPath);
+
+  const parsed = await readStyleJson(normalizedPath);
+  const extendsPath = parsed.extends ? resolveExtendsPath(normalizedPath, parsed.extends) : null;
+  const base = extendsPath ? (await loadStyleConfigFile(extendsPath, seen)).style : DEFAULT_STYLE;
+  const override = { ...parsed };
+  delete override.extends;
+
+  return {
+    extendsPath,
+    style: mergeStyle(base, override)
+  };
+}
+
+async function readStyleJson(stylePath) {
+  try {
+    const text = await fs.readFile(stylePath, "utf8");
+    return JSON.parse(text);
+  } catch (error) {
     if (error instanceof SyntaxError) {
-      throw new UvcsError("Invalid .uvcs-mcp/style.json", {
+      throw new UvcsError("Invalid style config JSON", {
         code: "INVALID_STYLE_CONFIG",
         details: { path: stylePath, reason: error.message }
       });
     }
     throw error;
   }
+}
+
+function resolveExtendsPath(stylePath, value) {
+  if (typeof value !== "string" || value.trim().length === 0 || /[\0\r\n]/.test(value)) {
+    throw new UvcsError("style extends must be a non-empty JSON file path", {
+      code: "INVALID_STYLE_CONFIG",
+      details: { path: stylePath, extends: value }
+    });
+  }
+
+  const candidate = path.isAbsolute(value)
+    ? path.resolve(value)
+    : path.resolve(path.dirname(stylePath), value);
+  if (path.extname(candidate).toLowerCase() !== ".json") {
+    throw new UvcsError("style extends must point to a JSON file", {
+      code: "INVALID_STYLE_CONFIG",
+      details: { path: stylePath, extends: value }
+    });
+  }
+  return candidate;
 }
 
 function createStylePreset({ preset, baseBranch, branchPrefix, versionFile }) {
@@ -200,16 +251,22 @@ function createStylePreset({ preset, baseBranch, branchPrefix, versionFile }) {
   });
 }
 
-export async function createReleasePlan({ workspace, releaseType, currentVersion }) {
+export async function createReleasePlan({ workspace, releaseType, currentVersion, releaseVersion, projectName }) {
   const loaded = await loadStyleConfig(workspace);
   const style = loaded.style;
-  const version = currentVersion ?? await readVersionFromWorkspace(workspace, style.release.versionFile);
-  const nextVersion = bumpVersion(version, releaseType);
+  const explicitReleaseVersion = normalizeReleaseVersion(releaseVersion);
+  const version = explicitReleaseVersion
+    ? currentVersion
+    : currentVersion ?? await readVersionFromWorkspace(workspace, style.release.versionFile);
+  const nextVersion = explicitReleaseVersion ?? bumpVersion(version, releaseType);
+  const safeProjectName = normalizeProjectName(projectName);
   const values = {
     baseBranch: style.release.baseBranch,
     version: nextVersion,
-    currentVersion: version,
-    releaseType
+    releaseVersion: nextVersion,
+    ...(version ? { currentVersion: version } : {}),
+    ...(releaseType ? { releaseType } : {}),
+    ...(safeProjectName ? { projectName: safeProjectName } : {})
   };
 
   return {
@@ -217,7 +274,9 @@ export async function createReleasePlan({ workspace, releaseType, currentVersion
     stylePath: loaded.path,
     releaseType,
     currentVersion: version,
+    releaseVersion: nextVersion,
     nextVersion,
+    projectName: safeProjectName,
     branch: renderPattern(style.release.branchPattern, values),
     label: renderPattern(style.release.labelPattern, values),
     branchComment: renderPattern(style.release.branchCommentPattern, values),
@@ -300,6 +359,11 @@ function bumpVersion(version, releaseType) {
       details: { version }
     });
   }
+  if (!releaseType) {
+    throw new UvcsError("releaseType is required when releaseVersion is not provided", {
+      code: "INVALID_RELEASE_TYPE"
+    });
+  }
   let [, major, minor, patch] = match.map(Number);
   if (releaseType === "major") {
     major += 1;
@@ -357,6 +421,28 @@ function normalizeVersionFile(value) {
     throw new UvcsError("versionFile must be a safe relative path", {
       code: "INVALID_STYLE_INPUT",
       details: { versionFile: value }
+    });
+  }
+  return value;
+}
+
+function normalizeReleaseVersion(value) {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value !== "string" || !/^\d+\.\d+(?:\.\d+)?(?:[-+][A-Za-z0-9._-]+)?$/.test(value)) {
+    throw new UvcsError("releaseVersion must use version format MAJOR.MINOR or MAJOR.MINOR.PATCH", {
+      code: "INVALID_VERSION",
+      details: { releaseVersion: value }
+    });
+  }
+  return value;
+}
+
+function normalizeProjectName(value) {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value !== "string" || !/^[a-z0-9]+(?:[a-z0-9_-]*[a-z0-9])?$/.test(value)) {
+    throw new UvcsError("projectName may contain only lowercase latin letters, numbers, underscore, or dash", {
+      code: "INVALID_STYLE_INPUT",
+      details: { projectName: value }
     });
   }
   return value;
