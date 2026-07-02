@@ -6,6 +6,14 @@ Optional style file:
 .uvcs-mcp/style.json
 ```
 
+Project style files can point at a central policy:
+
+```json
+{
+  "extends": "../../.uvcs-mcp/style.json"
+}
+```
+
 Use it to standardize:
 
 - branch names;
@@ -34,5 +42,16 @@ label: v1.3.0
 checkinMessage: release: prepare v1.3.0
 ```
 
-Actual branch creation and labels still use prepare/confirm tools.
+For project release branches, style patterns can use a user-provided release version and project name:
 
+```json
+{
+  "release": {
+    "branchPattern": "/{releaseVersion} {projectName}"
+  }
+}
+```
+
+`uvcs_release_plan` accepts `releaseVersion`, such as `2.1`, and `projectName`, such as `hp-kidalki`.
+
+Actual branch creation and labels still use prepare/confirm tools.

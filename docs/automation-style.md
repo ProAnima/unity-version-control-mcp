@@ -8,6 +8,16 @@ UVCS MCP can read optional naming rules from:
 
 If the file is missing, the server uses built-in defaults. The setup tools help agents notice missing project conventions and ask the user whether to create them. Preview and planning tools help agents produce consistent branch names, checkin comments, release branch names, labels, and review windows before running any write tools.
 
+Workspace style files can also extend a central JSON policy:
+
+```json
+{
+  "extends": "../../.uvcs-mcp/style.json"
+}
+```
+
+Relative `extends` paths are resolved from the workspace `.uvcs-mcp/style.json` file. Local values override the inherited style.
+
 ## Default style
 
 ```json
@@ -135,15 +145,28 @@ Input:
 ```json
 {
   "releaseType": "minor",
-  "currentVersion": "1.2.3"
+  "currentVersion": "1.2.3",
+  "projectName": "hp-kidalki"
 }
 ```
+
+For projects that use user-provided release numbers instead of semantic bumps, pass `releaseVersion`:
+
+```json
+{
+  "releaseVersion": "2.1",
+  "projectName": "hp-kidalki"
+}
+```
+
+Release patterns can use `{baseBranch}`, `{version}`, `{releaseVersion}`, `{currentVersion}`, `{releaseType}`, and `{projectName}`. `{version}` and `{releaseVersion}` both resolve to the target release version. `{projectName}` is optional, lowercase, and may contain only latin letters, numbers, `_`, and `-`.
 
 Output example:
 
 ```json
 {
   "currentVersion": "1.2.3",
+  "releaseVersion": "1.3.0",
   "nextVersion": "1.3.0",
   "branch": "/main/release/v1.3.0",
   "label": "v1.3.0",
