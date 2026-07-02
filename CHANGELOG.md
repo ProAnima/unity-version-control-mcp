@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.1.0 - 2026-07-02
+
+Style-policy release focused on shared automation rules and project release branch naming.
+
+### Added
+
+- `.uvcs-mcp/style.json` can extend a central JSON style policy through `extends`.
+- `uvcs_release_plan` accepts explicit `releaseVersion` values such as `2.1`.
+- Release style patterns can use `{releaseVersion}` and `{projectName}`.
+- Branch create validation now allows safe release branch paths with a project name segment, such as `/2.1 hp-kidalki`.
+
+### Changed
+
+- `uvcs_release_plan` no longer requires `releaseType` when `releaseVersion` is provided.
+- Automation style documentation now covers shared policy files and project-name release branch patterns.
+
+### Tested
+
+- `npm test`: 48 tests passing.
+- `npm run lint`.
+- `npm run check`.
+- `npm run release:check`.
+- `npm run smoke:fake`.
+- `npm pack --dry-run`.
+
 ## 1.0.0 - 2026-06-26
 
 First production release line. This release keeps the safe MCP surface from `0.3.0`, adds static analysis and publish automation, and formalizes the 1.x support and security posture.
