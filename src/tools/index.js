@@ -163,11 +163,11 @@ export function createTools({ config, backend }) {
         },
         releaseVersion: {
           type: "string",
-          description: "Optional explicit release version for styles that use a user-provided version, for example 2.1."
+          description: "Optional explicit release version for styles that use a user-provided version."
         },
         projectName: {
           type: "string",
-          description: "Optional safe lowercase project code for release patterns that use {projectName}, for example hp-kidalki."
+          description: "Optional safe lowercase project code for release patterns that use {projectName}."
         }
       },
       async ({ releaseType, currentVersion, releaseVersion, projectName }) => {
@@ -630,7 +630,7 @@ function assertBranchSpec(branch) {
   const safeSegment = "[A-Za-z0-9._-]+(?: [A-Za-z0-9._-]+)*";
   const safeBranchPath = new RegExp(`^/?${safeSegment}(?:/${safeSegment})*$`);
   if (typeof branch !== "string" || !safeBranchPath.test(branch)) {
-    throw new UvcsError("Branch must be a safe branch path such as /main, /main/task-name, or /2.1 project-name", {
+    throw new UvcsError("Branch must be a safe branch path such as /main, /main/task-name, or /release-version project-name", {
       code: "INVALID_BRANCH_SPEC",
       details: { branch }
     });

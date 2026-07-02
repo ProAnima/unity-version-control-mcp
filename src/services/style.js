@@ -164,21 +164,27 @@ async function readStyleJson(stylePath) {
 
 function resolveExtendsPath(stylePath, value) {
   if (typeof value !== "string" || value.trim().length === 0 || /[\0\r\n]/.test(value)) {
-    throw new UvcsError("style extends must be a non-empty JSON file path", {
+    throw new UvcsError("style extends must be a non-empty relative JSON file path", {
       code: "INVALID_STYLE_CONFIG",
       details: { path: stylePath, extends: value }
     });
   }
 
-  const candidate = path.isAbsolute(value)
-    ? path.resolve(value)
-    : path.resolve(path.dirname(stylePath), value);
-  if (path.extname(candidate).toLowerCase() !== ".json") {
-    throw new UvcsError("style extends must point to a JSON file", {
+  if (path.isAbsolute(value)) {
+    throw new UvcsError("style extends must be relative to the current style config", {
       code: "INVALID_STYLE_CONFIG",
       details: { path: stylePath, extends: value }
     });
   }
+
+  const candidate = path.resolve(path.dirname(stylePath), value);
+  if (path.basename(candidate) !== "style.json" || path.basename(path.dirname(candidate)) !== ".uvcs-mcp") {
+    throw new UvcsError("style extends must point to a .uvcs-mcp/style.json file", {
+      code: "INVALID_STYLE_CONFIG",
+      details: { path: stylePath, extends: value }
+    });
+  }
+
   return candidate;
 }
 
@@ -319,7 +325,7 @@ export function previewCheckinMessage({ style, type, summary }) {
 function mergeStyle(base, override) {
   return {
     ...base,
-    ...override,
+    version: override.version ?? base.version,
     release: { ...base.release, ...override.release },
     branches: { ...base.branches, ...override.branches },
     checkins: { ...base.checkins, ...override.checkins }

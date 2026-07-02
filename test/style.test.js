@@ -42,15 +42,15 @@ test("release plan supports explicit release version and project name placeholde
 
   const plan = await createReleasePlan({
     workspace,
-    releaseVersion: "2.1",
-    projectName: "hp-kidalki"
+    releaseVersion: "3.4",
+    projectName: "sample-project"
   });
 
-  assert.equal(plan.releaseVersion, "2.1");
-  assert.equal(plan.projectName, "hp-kidalki");
-  assert.equal(plan.branch, "/2.1 hp-kidalki");
-  assert.equal(plan.label, "hp-kidalki-2.1");
-  assert.equal(plan.checkinMessage, "Prepare 2.1 hp-kidalki");
+  assert.equal(plan.releaseVersion, "3.4");
+  assert.equal(plan.projectName, "sample-project");
+  assert.equal(plan.branch, "/3.4 sample-project");
+  assert.equal(plan.label, "sample-project-3.4");
+  assert.equal(plan.checkinMessage, "Prepare 3.4 sample-project");
 });
 
 test("release plan validates project names used by style placeholders", async () => {
@@ -59,8 +59,8 @@ test("release plan validates project names used by style placeholders", async ()
   await assert.rejects(
     () => createReleasePlan({
       workspace,
-      releaseVersion: "2.1",
-      projectName: "HP Kidalki"
+      releaseVersion: "3.4",
+      projectName: "Sample Project"
     }),
     /projectName/
   );
@@ -115,11 +115,6 @@ test("style config can extend a central policy above the workspace", async () =>
     checkins: {
       messagePattern: "{summary}",
       allowedTypes: ["fix"]
-    },
-    workflowRules: {
-      releaseWorkflow: {
-        releaseBranchFormat: "/{releaseVersion} {projectName}"
-      }
     }
   }), "utf8");
   await fs.writeFile(path.join(workspaceStyleDir, "style.json"), JSON.stringify({
@@ -139,7 +134,26 @@ test("style config can extend a central policy above the workspace", async () =>
     type: "fix",
     summary: "Исправлена работа автообновления"
   }), "Исправлена работа автообновления");
-  assert.equal(loaded.style.workflowRules.releaseWorkflow.releaseBranchFormat, "/{releaseVersion} {projectName}");
+  assert.equal("workflowRules" in loaded.style, false);
+});
+
+test("style config extends rejects unsafe external JSON paths", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "uvcs-mcp-style-root-"));
+  const workspace = path.join(root, "Project");
+  const workspaceStyleDir = path.join(workspace, ".uvcs-mcp");
+  const externalJson = path.join(root, "policy.json");
+  await fs.mkdir(workspaceStyleDir, { recursive: true });
+  await fs.writeFile(externalJson, JSON.stringify({ release: { baseBranch: "/main" } }), "utf8");
+
+  await fs.writeFile(path.join(workspaceStyleDir, "style.json"), JSON.stringify({
+    extends: externalJson
+  }), "utf8");
+  await assert.rejects(() => loadStyleConfig(workspace), /relative/);
+
+  await fs.writeFile(path.join(workspaceStyleDir, "style.json"), JSON.stringify({
+    extends: "../../policy.json"
+  }), "utf8");
+  await assert.rejects(() => loadStyleConfig(workspace), /\.uvcs-mcp\/style\.json/);
 });
 
 test("style setup guide asks the model to propose workspace rules when missing", async () => {

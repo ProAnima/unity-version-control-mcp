@@ -6,10 +6,10 @@ Style-policy release focused on shared automation rules and project release bran
 
 ### Added
 
-- `.uvcs-mcp/style.json` can extend a central JSON style policy through `extends`.
-- `uvcs_release_plan` accepts explicit `releaseVersion` values such as `2.1`.
+- `.uvcs-mcp/style.json` can extend a central `.uvcs-mcp/style.json` policy through a relative `extends` path.
+- `uvcs_release_plan` accepts explicit `releaseVersion` values.
 - Release style patterns can use `{releaseVersion}` and `{projectName}`.
-- Branch create validation now allows safe release branch paths with a project name segment, such as `/2.1 hp-kidalki`.
+- Branch create validation now allows safe release branch paths with a version and project-name segment.
 
 ### Changed
 
@@ -18,7 +18,7 @@ Style-policy release focused on shared automation rules and project release bran
 
 ### Tested
 
-- `npm test`: 48 tests passing.
+- `npm test`: 49 tests passing.
 - `npm run lint`.
 - `npm run check`.
 - `npm run release:check`.

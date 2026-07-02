@@ -16,7 +16,7 @@ Workspace style files can also extend a central JSON policy:
 }
 ```
 
-Relative `extends` paths are resolved from the workspace `.uvcs-mcp/style.json` file. Local values override the inherited style.
+Relative `extends` paths are resolved from the workspace `.uvcs-mcp/style.json` file and must point to another `.uvcs-mcp/style.json`. Local values override the inherited style.
 
 ## Default style
 
@@ -146,7 +146,7 @@ Input:
 {
   "releaseType": "minor",
   "currentVersion": "1.2.3",
-  "projectName": "hp-kidalki"
+  "projectName": "project-code"
 }
 ```
 
@@ -154,8 +154,8 @@ For projects that use user-provided release numbers instead of semantic bumps, p
 
 ```json
 {
-  "releaseVersion": "2.1",
-  "projectName": "hp-kidalki"
+  "releaseVersion": "1.4",
+  "projectName": "project-code"
 }
 ```
 

@@ -14,6 +14,8 @@ Project style files can point at a central policy:
 }
 ```
 
+The path must be relative and point to another `.uvcs-mcp/style.json`.
+
 Use it to standardize:
 
 - branch names;
@@ -52,6 +54,6 @@ For project release branches, style patterns can use a user-provided release ver
 }
 ```
 
-`uvcs_release_plan` accepts `releaseVersion`, such as `2.1`, and `projectName`, such as `hp-kidalki`.
+`uvcs_release_plan` accepts an explicit `releaseVersion` and a lowercase `projectName`.
 
 Actual branch creation and labels still use prepare/confirm tools.
