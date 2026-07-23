@@ -51,7 +51,7 @@ Before publishing from GitHub Actions, configure npm trusted publishing for:
 - workflow: `.github/workflows/publish.yml`
 - allowed action: `npm publish`
 
-The workflow uses Node.js `22.14.0`, installs the latest npm CLI, runs the full release gate, and publishes with:
+The workflow uses Node.js `24.15.0`, installs the latest npm CLI, runs the full release gate, and publishes with:
 
 ```bash
 npm publish --access public --provenance

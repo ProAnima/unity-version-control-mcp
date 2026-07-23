@@ -21,12 +21,12 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v')
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.inputs.tag || github.event.release.tag_name }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22.14.0
+          node-version: 24.15.0
           registry-url: https://registry.npmjs.org
           cache: npm
       - run: npm install -g npm@latest
