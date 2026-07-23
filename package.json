@@ -14,7 +14,7 @@
   },
   "bin": {
     "uvcs-mcp": "src/cli.js",
-    "uvcs-mcp-doctor": "src/cli.js"
+    "uvcs-mcp-doctor": "src/doctor-cli.js"
   },
   "files": [
     "src",
@@ -42,11 +42,13 @@
     "setup:codex": "node src/cli.js init-local --client=codex",
     "setup:all": "node src/cli.js init-local --client=all",
     "smoke:fake": "node scripts/mcp-smoke-fake.js",
+    "smoke:fleet": "node scripts/mcp-smoke-fleet.js",
     "smoke:plastic": "node scripts/mcp-smoke-plastic.js",
     "test": "node --test",
     "lint": "eslint .",
+    "audit:prod": "npm audit --omit=dev",
     "release:check": "node scripts/release-check.js",
-    "check": "node --check src/cli.js && node --check src/server.js && node --check src/server/tool-result.js && node --check src/server/write-lock.js && node --check src/backend/cm.js && node --check src/backend/commands.js && node --check src/backend/errors.js && node --check src/backend/machine-readable.js && node --check src/backend/process-runner.js && node --check src/cli/init.js && node --check src/cli/doctor.js && node --check src/platform/paths.js && node --check src/services/audit.js && node --check src/services/doctor.js && node --check src/services/unity-meta.js && node --check src/services/style.js && node --check src/services/safety.js && node --check src/services/analytics.js && node --check src/tools/index.js && node --check src/policy/policy.js && node --check src/config/env.js && node --check scripts/fake-cm.js && node --check scripts/mcp-smoke-fake.js && node --check scripts/mcp-smoke-plastic.js && node --check scripts/release-check.js"
+    "check": "node --check src/cli.js && node --check src/doctor-cli.js && node --check src/server.js && node --check src/server/tool-result.js && node --check src/server/write-lock.js && node --check src/backend/cm.js && node --check src/backend/commands.js && node --check src/backend/errors.js && node --check src/backend/machine-readable.js && node --check src/backend/process-runner.js && node --check src/cli/init.js && node --check src/cli/doctor.js && node --check src/platform/paths.js && node --check src/services/audit.js && node --check src/services/doctor.js && node --check src/services/policy-report.js && node --check src/services/unity-meta.js && node --check src/services/style.js && node --check src/services/safety.js && node --check src/services/analytics.js && node --check src/tools/index.js && node --check src/tools/fleet.js && node --check src/policy/policy.js && node --check src/config/env.js && node --check src/config/fleet.js && node --check scripts/fake-cm.js && node --check scripts/mcp-smoke-fake.js && node --check scripts/mcp-smoke-fleet.js && node --check scripts/mcp-smoke-plastic.js && node --check scripts/release-check.js"
   },
   "keywords": [
     "mcp",
@@ -70,11 +72,15 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "zod": "^4.0.0"
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "zod": "4.4.3"
+  },
+  "overrides": {
+    "@hono/node-server": "2.0.11",
+    "fast-uri": "3.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "eslint": "^10.5.0"
+    "eslint": "^10.7.0"
   }
 }

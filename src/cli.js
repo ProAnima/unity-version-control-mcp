@@ -31,8 +31,17 @@ Usage:
   uvcs-mcp init-local   Configure clients to run this git checkout
   uvcs-mcp doctor       Check cm, workspace, and server readiness
 
+Setup:
+  --workspace=<path>    Configure one workspace
+  --manifest=<file>     Configure named workspaces from a fleet manifest
+  --fleet-layout=<mode> single (one MCP) | isolated (one MCP per workspace)
+  --safety=<profile>    readonly | guarded | standard
+  --allowed-repos=<ids> Semicolon-separated repository@server allowlist
+  --print-config        Preview without writing
+
 Environment:
   UVCS_WORKSPACE        Required for normal server use
+  UVCS_FLEET_MANIFEST   Optional manifest for one-process multi-workspace mode
   UVCS_CM_PATH          Optional path to cm executable
   UVCS_MCP_MODE         readonly | standard
 `);

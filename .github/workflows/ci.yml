@@ -26,6 +26,8 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npm run check
+      - run: npm run audit:prod
       - run: npm run release:check
       - run: npm run smoke:fake
+      - run: npm run smoke:fleet
       - run: npm pack --dry-run

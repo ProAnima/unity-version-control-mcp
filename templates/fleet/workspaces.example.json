@@ -1,0 +1,31 @@
+{
+  "$schema": "./workspaces.schema.json",
+  "version": 1,
+  "defaults": {
+    "safety": "guarded",
+    "installSource": "npm",
+    "checkinMaxFiles": 20,
+    "tokenTtlSec": 120,
+    "readTimeoutMs": 30000,
+    "writeTimeoutMs": 300000,
+    "maxOutputBytes": 10485760
+  },
+  "workspaces": [
+    {
+      "name": "game-client",
+      "path": "D:/Repositories/GameClient",
+      "allowedRepos": [
+        "game-client@cloud"
+      ],
+      "auditLog": "logs/game-client.jsonl"
+    },
+    {
+      "name": "game-server",
+      "path": "D:/Repositories/GameServer",
+      "allowedRepos": [
+        "game-server@cloud"
+      ],
+      "auditLog": "logs/game-server.jsonl"
+    }
+  ]
+}

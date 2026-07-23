@@ -102,6 +102,17 @@ export function addCommand(itemPath) {
   };
 }
 
+export function undoCommand({ itemPath, recursive = false }) {
+  const args = ["undo", itemPath];
+  if (recursive) args.push("--recursive");
+  args.push(...MACHINE_READABLE_FLAGS);
+  return {
+    args,
+    requireWorkspace: true,
+    mutation: true
+  };
+}
+
 export function branchCreateCommand({ branch, fromChangeset, fromLabel, comment }) {
   const args = ["branch", "create", branch];
   if (fromChangeset) args.push(`--changeset=${fromChangeset}`);

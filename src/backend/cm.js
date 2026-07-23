@@ -10,7 +10,8 @@ import {
   findChangesetsCommand,
   labelCreateCommand,
   mergeCommand,
-  switchCommand
+  switchCommand,
+  undoCommand
 } from "./commands.js";
 import { runProcess } from "./process-runner.js";
 import { parseMachineReadableTable, toRawResult } from "./machine-readable.js";
@@ -58,6 +59,7 @@ export function createCmBackend(config) {
     },
     diffFile: (filePath) => runCmSpec(config, diffFileCommand(filePath)).then(toRawResult),
     add: (itemPath) => runCmSpec(config, addCommand(itemPath)).then(toRawResult),
+    undo: (payload) => runCmSpec(config, undoCommand(payload)).then(toRawResult),
     createBranch: (payload) => runCmSpec(config, branchCreateCommand(payload)).then(toRawResult),
     createLabel: (payload) => runCmSpec(config, labelCreateCommand(payload)).then(toRawResult),
     switchTo: (target) => runCmSpec(config, switchCommand(target)).then(toRawResult),
@@ -90,7 +92,8 @@ export async function runCmSpec(config, spec) {
   return await runProcess(config.cmPath, [...(config.cmArgs ?? []), ...spec.args], {
     cwd: config.workspace || process.cwd(),
     allowFailure: spec.allowFailure,
-    timeoutMs: spec.timeoutMs,
+    timeoutMs: spec.timeoutMs ?? (spec.mutation ? config.writeTimeoutMs : config.readTimeoutMs),
+    maxOutputBytes: config.maxOutputBytes,
     env: {
       ...process.env,
       LC_ALL: "C.UTF-8"

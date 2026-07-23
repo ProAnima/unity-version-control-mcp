@@ -24,4 +24,12 @@ UVCS_MCP_MODE=standard
 
 Critical write operations use prepare/confirm tokens.
 
+Switch, merge, update, and checkin revalidate workspace state after prepare. Multiple MCP processes coordinate writes through a workspace lock file.
+
+Safety profiles:
+
+- `readonly`: inspection only;
+- `guarded`: writes with workspace and repository allowlists;
+- `standard`: writes with workspace pinning and optional repository allowlist.
+
 When configured, `UVCS_ALLOWED_WORKSPACES` and `UVCS_ALLOWED_REPOS` restrict the server to approved local workspace paths and repository/server identities.

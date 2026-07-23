@@ -29,6 +29,7 @@ Or install manually:
 ```bash
 git clone https://github.com/ProAnima/unity-version-control-mcp.git uvcs-mcp
 cd uvcs-mcp
+npm ci
 node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro --workspace="D:/Repositories/YourWorkspace"
 ```
 
@@ -73,6 +74,8 @@ If `cm` is not in `PATH`, add `--cm=/path/to/cm` or set `UVCS_CM_PATH`.
 npx -y @proanima/uvcs-mcp init --client=cursor,codex --workspace="D:/Repositories/YourWorkspace"
 ```
 
+`init` uses the npm package as its install source. Use `init-local` only when client configuration should run the current git checkout.
+
 Manual MCP block:
 
 ```json
@@ -108,12 +111,17 @@ Manual MCP block:
 - Write tools require `UVCS_MCP_MODE=standard`.
 - Critical write operations use `*_prepare` followed by matching `*_confirm`.
 - Write confirmations are serialized per workspace.
+- Confirmed switch, merge, update, and checkin operations revalidate workspace state after prepare.
+- Multiple MCP processes coordinate writes through a workspace lock file.
+- Read and write commands have separate timeouts and bounded output.
 - Repository delete, repository rename, arbitrary `cm`, arbitrary shell execution, and raw `cm api` startup are not exposed.
 - Optional JSONL audit logging is available with `UVCS_AUDIT_LOG=/path/to/uvcs-mcp-audit.jsonl`.
 
 ## Tools
 
 - `uvcs_doctor`
+- `uvcs_policy_status`
+- `uvcs_setup_status`
 - `uvcs_workspace_status`
 - `uvcs_pending_changes`
 - `uvcs_branch_info`
@@ -130,18 +138,33 @@ Manual MCP block:
 - `uvcs_update_workspace_prepare` / `uvcs_update_workspace_confirm`
 - `uvcs_changeset_analytics`
 - `uvcs_add_prepare` / `uvcs_add_confirm`
+- `uvcs_undo_prepare` / `uvcs_undo_confirm`
 - `uvcs_branch_create_prepare` / `uvcs_branch_create_confirm`
 - `uvcs_label_create_prepare` / `uvcs_label_create_confirm`
 - `uvcs_switch_workspace_prepare` / `uvcs_switch_workspace_confirm`
 - `uvcs_merge_prepare` / `uvcs_merge_confirm`
 - `uvcs_checkin_prepare` / `uvcs_checkin_confirm`
 
+## Multiple Workspaces
+
+Use a fleet manifest to configure one MCP server for up to 50 named workspaces:
+
+```bash
+npx -y @proanima/uvcs-mcp init --manifest=workspaces.json --client=cursor,codex --print-config
+```
+
+Start from `templates/fleet/workspaces.example.json`. See [Multi-Workspace and Fleet Work](docs/multi-workspace.md) for safety profiles and the recommended prepare-all/confirm-each workflow.
+
+In fleet mode every tool call requires an explicit `workspace` selector. Use `--fleet-layout=isolated` only when you prefer one MCP process per workspace.
+
 ## Development
 
 ```bash
 npm test
 npm run check
+npm run audit:prod
 npm run smoke:fake
+npm run smoke:fleet
 ```
 
 Run the real Plastic SCM smoke test against a disposable or safe workspace:
@@ -163,6 +186,7 @@ The smoke test creates temporary branches, labels, checkins, and a merge through
 
 - [Install](docs/install.md)
 - [Clients](docs/clients.md)
+- [Multi-Workspace and Fleet Work](docs/multi-workspace.md)
 - [Security](docs/security.md)
 - [Security Review](docs/security-review.md)
 - [Compatibility](docs/compatibility.md)

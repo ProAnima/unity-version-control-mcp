@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Fleet manifests configure one MCP server for up to 50 explicitly selected named workspaces.
+- Optional `--fleet-layout=isolated` configuration keeps one MCP process per workspace.
+- One-process two-workspace MCP smoke coverage for coordinated fleet workflows.
+- `uvcs_undo_prepare` / `uvcs_undo_confirm` safely expose path-scoped UVCS undo while forbidding whole-workspace undo.
+- `readonly`, `guarded`, and `standard` safety profiles.
+- `uvcs_policy_status` and `uvcs_setup_status` for effective policy, identity, and naming readiness.
+- Cross-process workspace write locking.
+- Separate read/write timeouts and bounded `cm` process output.
+
+### Changed
+
+- Switch, merge, update, and checkin confirmation now revalidate workspace state after prepare.
+- Workspace path checks use real filesystem canonicalization and platform-correct case handling.
+- `uvcs_doctor` now respects workspace and repository allowlists.
+- npm initialization defaults to the npm install source; `init-local` remains explicit.
+- Runtime dependencies are pinned to audited versions with patched transitive overrides.
+- Confirmation tokens are bound to the workspace that prepared them.
+
+### Security
+
+- Production dependency audit is now part of CI and the publish gate.
+- Current production dependency audit reports zero known vulnerabilities.
+
 ## 1.1.0 - 2026-07-02
 
 Style-policy release focused on shared automation rules and project release branch naming.

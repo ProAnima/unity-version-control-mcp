@@ -10,7 +10,7 @@ function main() {
   const [command, subcommand] = args;
 
   if (command === "showcommands") {
-    write("status\nupdate\ncheckin\nbranch\nlabel\nswitch\nmerge\nlock\napi\n");
+    write("status\nupdate\ncheckin\nbranch\nlabel\nswitch\nmerge\nundo\nlock\napi\n");
     return;
   }
 
@@ -84,6 +84,11 @@ function main() {
 
   if (command === "add") {
     write(`Added ${args.at(-1)}\n`);
+    return;
+  }
+
+  if (command === "undo") {
+    write(`Undid pending changes for ${args[1]}\n`);
     return;
   }
 

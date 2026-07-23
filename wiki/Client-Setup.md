@@ -24,3 +24,8 @@ If `cm` is not in `PATH`, pass:
 node src/cli.js init-local --client=cursor --workspace="D:/Repositories/YourWorkspace" --cm="/path/to/cm"
 ```
 
+For multiple workspaces:
+
+```bash
+npx -y @proanima/uvcs-mcp init --manifest=workspaces.json --client=cursor,codex --print-config
+```

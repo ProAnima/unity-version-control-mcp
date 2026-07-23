@@ -1,6 +1,6 @@
 # Production Readiness
 
-UVCS MCP is currently a stable `1.0.x` release line. The architecture is intentionally conservative, and production trust is maintained through CI, fake MCP smoke coverage, strict tool policies, security review notes, and compatibility reports.
+UVCS MCP is currently on the stable `1.x` release line. The architecture is intentionally conservative, and production trust is maintained through CI, fake MCP smoke coverage, strict tool policies, security review notes, and compatibility reports.
 
 ## Current status
 
@@ -12,12 +12,20 @@ Already in place:
 - default `readonly` mode;
 - prepare/confirm for mutating workspace and repository operations;
 - per-workspace serialization for write confirmations;
+- cross-process workspace write locking;
+- state revalidation between prepare and confirm;
+- separate read/write timeouts and bounded process output;
+- manifest-driven one-process routing for up to 50 named workspaces, with explicit per-call workspace selection;
+- optional one-process-per-workspace isolation layout;
+- workspace-bound confirmation tokens, audit logs, and write locks;
+- path-scoped irreversible undo with whole-workspace undo forbidden;
 - workspace path confinement;
 - workspace and repository allowlists;
 - optional JSONL audit logging with `UVCS_AUDIT_LOG`;
 - fake `cm` MCP smoke test for CI without Plastic SCM credentials;
 - read-only cleanup and branch safety helpers instead of destructive delete tools;
 - unit tests, ESLint, syntax checks, release metadata checks, fake smoke, and CI on Node.js 20, 22, and 24;
+- production dependency audit in CI and the publish gate;
 - npm publishing workflow using trusted publishing/OIDC and provenance;
 - documented security review for path escape, token replay, env handling, command construction, and destructive-operation policy;
 - one full Plastic SCM E2E smoke pass on `pas-Kodeks@SRV-IAN-N:8087`;
@@ -54,6 +62,7 @@ For the `1.x` line:
 - Use `standard` mode only in a disposable workspace, dev workspace, or release-manager checkout.
 - Run `uvcs_doctor` after installing the MCP server or updating the Plastic SCM / Unity Version Control client.
 - Run `npm run smoke:fake` before opening release pull requests.
+- Run `npm run smoke:fleet` when changing client setup, policy, locking, or prepare/confirm behavior.
 - Set `UVCS_ALLOWED_WORKSPACES` for fixed team checkouts.
 - Set `UVCS_ALLOWED_REPOS` when the workspace should never point to another repository/server.
 - Set `UVCS_AUDIT_LOG` for release-manager or shared-agent checkouts.

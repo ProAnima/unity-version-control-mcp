@@ -11,8 +11,10 @@ npm ci
 npm test
 npm run lint
 npm run check
+npm run audit:prod
 npm run release:check
 npm run smoke:fake
+npm run smoke:fleet
 npm pack --dry-run
 ```
 
@@ -44,8 +46,10 @@ npm ci
 npm test
 npm run lint
 npm run check
+npm run audit:prod
 npm run release:check
 npm run smoke:fake
+npm run smoke:fleet
 npm pack --dry-run
 npm publish --access public --provenance
 ```

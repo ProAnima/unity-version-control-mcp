@@ -8,15 +8,16 @@ Ask your AI IDE to install this MCP server from the GitHub repository URL:
 Install this MCP server from https://github.com/ProAnima/unity-version-control-mcp, configure it for my Plastic SCM / Unity Version Control source-control workspace, and run uvcs_doctor.
 ```
 
-The server has no runtime npm dependencies, so a git checkout can run directly with Node.js.
+Install dependencies with `npm ci` when running a git checkout. npm installations resolve the pinned MCP SDK and validation dependencies automatically.
 
 ## From Git Clone
 
-This repo has no runtime npm dependencies. After cloning it, clients can run the MCP server directly with Node.
+After cloning, install dependencies before configuring clients:
 
 ```bash
 git clone https://github.com/ProAnima/unity-version-control-mcp.git uvcs-mcp
 cd uvcs-mcp
+npm ci
 node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro --workspace="D:/Repositories/YourWorkspace" --mode=readonly
 ```
 
@@ -84,6 +85,14 @@ npx -y @proanima/uvcs-mcp init
 ```
 
 The initializer merges an `uvcs` MCP server block into supported client configs and keeps existing `mcpServers` entries.
+
+Choose a safety profile explicitly for shared workspaces:
+
+```bash
+npx -y @proanima/uvcs-mcp init --workspace="D:/Repositories/YourWorkspace" --safety=guarded --allowed-repos="repository@server:8087"
+```
+
+Use `--manifest=workspaces.json` for one MCP server that routes every call to an explicit named workspace. Add `--fleet-layout=isolated` for one MCP process per workspace. See [Multi-Workspace and Fleet Work](multi-workspace.md).
 
 ## Manual npm config
 

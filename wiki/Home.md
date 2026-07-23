@@ -10,6 +10,7 @@ It is not a Unity Editor MCP. It works through the official `cm` CLI and focuses
 
 - [Quick Start](Quick-Start.md)
 - [Client Setup](Client-Setup.md)
+- [Multi-Workspace](Multi-Workspace.md)
 - [Safety Model](Safety-Model.md)
 - [Automation Style](Automation-Style.md)
 - [Changeset Analytics](Changeset-Analytics.md)

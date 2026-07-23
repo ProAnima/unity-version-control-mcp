@@ -6,9 +6,9 @@ Security fixes target the current release line.
 
 | Version | Supported |
 | --- | --- |
-| `0.2.x` | Yes |
-| `0.2.x-alpha` | Best effort only |
-| `0.1.x-alpha` | No |
+| `1.x` | Yes |
+| `0.3.x` | Security fixes only |
+| `< 0.3` | No |
 
 ## Reporting a Vulnerability
 
@@ -41,6 +41,7 @@ UVCS MCP is designed as a constrained source-control bridge:
 - no raw `cm api` server startup;
 - write tools are gated by `UVCS_MCP_MODE=standard`;
 - critical write tools use prepare/confirm tokens;
+- fleet calls require an explicit workspace and confirmation tokens cannot cross workspaces;
 - workspace and repository allowlists are enforced when configured;
 - file paths are constrained to `UVCS_WORKSPACE`.
 

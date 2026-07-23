@@ -53,3 +53,21 @@ test("confirm tokens are single use and action scoped", () => {
   assert.deepEqual(consumeConfirmToken({ token: second.token, action: "checkin" }), { message: "ok" });
   assert.throws(() => consumeConfirmToken({ token: second.token, action: "checkin" }), /Unknown/);
 });
+
+test("confirm tokens cannot cross workspace contexts", () => {
+  const prepared = createConfirmToken({
+    action: "checkin",
+    payload: { message: "ok" },
+    ttlSec: 60,
+    context: "workspace-a"
+  });
+
+  assert.throws(
+    () => consumeConfirmToken({
+      token: prepared.token,
+      action: "checkin",
+      context: "workspace-b"
+    }),
+    (error) => error.code === "CONFIRM_TOKEN_CONTEXT_MISMATCH"
+  );
+});

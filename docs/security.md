@@ -18,9 +18,15 @@ Critical write operations use two calls:
 
 The default token TTL is 300 seconds. The default max file count for checkin is 20.
 
-Prepare/confirm is used for update, add, branch create, label create, switch, merge, and checkin.
+Prepare/confirm is used for update, add, path-scoped undo, branch create, label create, switch, merge, and checkin.
 
 Confirm steps are serialized per workspace so two write operations cannot run concurrently against the same checkout through this MCP server.
+
+Fleet mode requires a named `workspace` on every tool call. Confirmation tokens include that workspace context and cannot be replayed against another project.
+
+Switch, merge, update, undo, and checkin confirmations revalidate the relevant workspace state after consuming the token. If the branch or pending changes changed after prepare, confirmation is refused and a new prepare call is required. Undo is limited to a specific relative path and refuses the workspace root because UVCS undo is irreversible.
+
+Writes are also coordinated across MCP server processes through `.plastic/uvcs-mcp.write.lock`. This matters when multiple AI clients are configured for the same checkout.
 
 ## Workspace and repository allowlists
 
@@ -35,6 +41,16 @@ UVCS_ALLOWED_REPOS=pas-Kodeks@SRV-IAN-N:8087
 ```
 
 Use semicolons for multiple entries.
+
+Client setup always pins `UVCS_ALLOWED_WORKSPACES` to the configured workspace. The `guarded` safety profile detects repository identity from `.plastic/plastic.workspace` or requires an explicit repository allowlist. Run `uvcs_setup_status` to inspect the effective policy and workspace identity.
+
+## Process limits
+
+- read timeout: `UVCS_READ_TIMEOUT_MS`, default 30 seconds;
+- write timeout: `UVCS_WRITE_TIMEOUT_MS`, default 300 seconds;
+- combined stdout/stderr limit: `UVCS_MAX_OUTPUT_BYTES`, default 10 MiB.
+
+Exceeding a limit returns a structured tool error. After any interrupted write command, inspect workspace status before retrying.
 
 Tool failures are returned to MCP clients as `isError` tool results with a stable error code, details, and a short remediation hint.
 

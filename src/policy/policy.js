@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { PolicyError, UvcsError } from "../backend/errors.js";
 
@@ -49,7 +50,9 @@ export function assertRelativeWorkspacePath(config, filePath) {
 
   const resolved = path.resolve(config.workspace, filePath);
   const workspace = path.resolve(config.workspace);
-  const relative = path.relative(workspace, resolved);
+  const canonicalWorkspace = canonicalPath(workspace);
+  const canonicalResolved = canonicalPathWithExistingAncestor(resolved);
+  const relative = path.relative(canonicalWorkspace, canonicalResolved);
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new PolicyError("filePath must stay inside UVCS_WORKSPACE", { filePath });
   }
@@ -57,14 +60,14 @@ export function assertRelativeWorkspacePath(config, filePath) {
   return relative;
 }
 
-export function createConfirmToken({ action, payload, ttlSec }) {
+export function createConfirmToken({ action, payload, ttlSec, context }) {
   const token = crypto.randomBytes(18).toString("base64url");
   const expiresAt = Date.now() + ttlSec * 1000;
-  pendingConfirms.set(token, { action, payload, expiresAt });
+  pendingConfirms.set(token, { action, payload, expiresAt, context });
   return { token, expiresAt };
 }
 
-export function consumeConfirmToken({ token, action }) {
+export function consumeConfirmToken({ token, action, context }) {
   const record = pendingConfirms.get(token);
   if (!record) {
     throw new PolicyError("Unknown or already used confirm token");
@@ -79,12 +82,41 @@ export function consumeConfirmToken({ token, action }) {
   if (record.action !== action) {
     throw new PolicyError(`Confirm token is for ${record.action}, not ${action}`);
   }
+  if (record.context !== context) {
+    throw new PolicyError("Confirm token belongs to another workspace", {
+      code: "CONFIRM_TOKEN_CONTEXT_MISMATCH"
+    });
+  }
 
   return record.payload;
 }
 
 function normalizePath(input) {
-  return path.resolve(input).toLowerCase();
+  const canonical = canonicalPath(input);
+  return process.platform === "win32" ? canonical.toLowerCase() : canonical;
+}
+
+function canonicalPath(input) {
+  const resolved = path.resolve(input);
+  try {
+    return fs.realpathSync.native(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
+function canonicalPathWithExistingAncestor(input) {
+  let cursor = path.resolve(input);
+  const suffix = [];
+
+  while (!fs.existsSync(cursor)) {
+    const parent = path.dirname(cursor);
+    if (parent === cursor) break;
+    suffix.unshift(path.basename(cursor));
+    cursor = parent;
+  }
+
+  return path.resolve(canonicalPath(cursor), ...suffix);
 }
 
 function normalizeRepo(input) {

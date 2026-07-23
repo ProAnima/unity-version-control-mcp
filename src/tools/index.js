@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import {
   assertRelativeWorkspacePath,
   assertRepoAllowed,
@@ -9,6 +10,7 @@ import {
 import { runDoctorService } from "../services/doctor.js";
 import { unityMetaDiagnostics } from "../services/unity-meta.js";
 import { changesetAnalytics } from "../services/analytics.js";
+import { effectivePolicyReport } from "../services/policy-report.js";
 import { branchSafetyReport, cleanupCandidates } from "../services/safety.js";
 import {
   createReleasePlan,
@@ -23,7 +25,26 @@ import { UvcsError } from "../backend/errors.js";
 
 export function createTools({ config, backend }) {
   const definitions = [
-    tool("uvcs_doctor", "Check cm, workspace, and UVCS MCP configuration.", {}, async () => runDoctorService(config, backend)),
+    tool("uvcs_doctor", "Check cm, workspace, and UVCS MCP configuration.", {}, async () => {
+      if (config.workspace) await assertWorkspacePolicy(config, backend);
+      return await runDoctorService(config, backend);
+    }),
+    tool("uvcs_policy_status", "Show the effective workspace identity, safety profile, allowlists, write limits, and mass-work guidance.", {}, async () => {
+      await assertWorkspacePolicy(config, backend);
+      return effectivePolicyReport(config);
+    }),
+    tool("uvcs_setup_status", "Show safety policy and branch/checkin/release naming setup in one place.", {}, async () => {
+      await assertWorkspacePolicy(config, backend);
+      return {
+        policy: effectivePolicyReport(config),
+        conventions: await styleSetupGuide(config.workspace),
+        ready: {
+          readWork: true,
+          writeWork: config.mode === "standard",
+          massWork: config.mode === "readonly" || config.allowedRepos.length > 0
+        }
+      };
+    }),
     tool("uvcs_workspace_status", "Return concise workspace status.", {}, async () => {
       await assertWorkspacePolicy(config, backend);
       return await backend.status();
@@ -207,6 +228,12 @@ export function createTools({ config, backend }) {
         const branchInfo = await backend.branchInfo();
         return { branchLine: branchInfo.branchLine ?? "" };
       },
+      revalidate: async (payload) => {
+        const branchInfo = await backend.branchInfo();
+        if ((branchInfo.branchLine ?? "") !== payload.branchLine) {
+          throw workspaceChangedError("branch changed after update preparation");
+        }
+      },
       confirm: async () => await backend.update()
     }),
     tool(
@@ -312,6 +339,50 @@ export function createTools({ config, backend }) {
     ...prepareConfirmTool({
       config,
       backend,
+      name: "uvcs_undo",
+      description: "Irreversibly undo pending changes for one path inside the selected workspace. Workspace-root undo is forbidden. Requires prepare/confirm.",
+      properties: {
+        itemPath: {
+          type: "string",
+          description: "Path relative to UVCS_WORKSPACE. Use a specific file or directory; the workspace root is forbidden."
+        },
+        recursive: {
+          type: "boolean",
+          description: "Undo pending changes recursively below itemPath. Default: false."
+        }
+      },
+      required: ["itemPath"],
+      action: "undo",
+      confirmPhrase: "confirm uvcs undo",
+      prepare: async ({ itemPath, recursive = false }) => {
+        await assertWorkspacePolicy(config, backend);
+        assertStandardMode(config);
+        const safePath = assertRelativeWorkspacePath(config, itemPath);
+        if (safePath === "" || safePath === ".") {
+          throw new UvcsError("Undoing the entire workspace is forbidden; choose a specific file or directory", {
+            code: "UNDO_WORKSPACE_ROOT_FORBIDDEN"
+          });
+        }
+        const status = await backend.pendingChanges();
+        return {
+          itemPath: safePath,
+          recursive,
+          statusFingerprint: fingerprintStatus(status.stdout),
+          warning: "UVCS undo is irreversible. Review pendingChanges before confirming.",
+          pendingChanges: status.stdout
+        };
+      },
+      revalidate: async (payload) => {
+        const status = await backend.pendingChanges();
+        if (fingerprintStatus(status.stdout) !== payload.statusFingerprint) {
+          throw workspaceChangedError("pending changes changed after undo preparation");
+        }
+      },
+      confirm: async ({ itemPath, recursive }) => await backend.undo({ itemPath, recursive })
+    }),
+    ...prepareConfirmTool({
+      config,
+      backend,
       name: "uvcs_branch_create",
       description: "Create a Plastic SCM / UVCS branch from a changeset or label. Requires prepare/confirm.",
       properties: {
@@ -410,7 +481,13 @@ export function createTools({ config, backend }) {
             details: { pendingChanges: status.stdout }
           });
         }
-        return { target };
+        return { target, statusFingerprint: fingerprintStatus(status.stdout) };
+      },
+      revalidate: async (payload) => {
+        const status = await backend.pendingChanges();
+        if (fingerprintStatus(status.stdout) !== payload.statusFingerprint) {
+          throw workspaceChangedError("pending changes changed after switch preparation");
+        }
       },
       confirm: async ({ target }) => await backend.switchTo(target)
     }),
@@ -445,7 +522,13 @@ export function createTools({ config, backend }) {
             details: { pendingChanges: status.stdout }
           });
         }
-        return { source, comment };
+        return { source, comment, statusFingerprint: fingerprintStatus(status.stdout) };
+      },
+      revalidate: async (payload) => {
+        const status = await backend.pendingChanges();
+        if (fingerprintStatus(status.stdout) !== payload.statusFingerprint) {
+          throw workspaceChangedError("pending changes changed after merge preparation");
+        }
       },
       confirm: async (payload) => await backend.merge(payload)
     }),
@@ -475,8 +558,12 @@ export function createTools({ config, backend }) {
         }
         const confirm = createConfirmToken({
           action: "checkin",
-          payload: { message },
-          ttlSec: config.tokenTtlSec
+          payload: {
+            message,
+            statusFingerprint: fingerprintStatus(status.stdout)
+          },
+          ttlSec: config.tokenTtlSec,
+          context: config.workspace
         });
         return {
           action: "checkin",
@@ -507,7 +594,18 @@ export function createTools({ config, backend }) {
         if (confirmPhrase !== "confirm uvcs checkin") {
           throw new UvcsError("Invalid confirmPhrase", { code: "INVALID_CONFIRM_PHRASE" });
         }
-        const payload = consumeConfirmToken({ token, action: "checkin" });
+        const payload = consumeConfirmToken({ token, action: "checkin", context: config.workspace });
+        const status = await backend.pendingChanges();
+        const changedFiles = countLikelyChangedFiles(status.stdout);
+        if (fingerprintStatus(status.stdout) !== payload.statusFingerprint) {
+          throw workspaceChangedError("pending changes changed after checkin preparation");
+        }
+        if (changedFiles > config.checkinMaxFiles) {
+          throw new UvcsError(`Refusing checkin: ${changedFiles} files exceed UVCS_CHECKIN_MAX_FILES=${config.checkinMaxFiles}`, {
+            code: "CHECKIN_TOO_LARGE",
+            details: { changedFiles, maxFiles: config.checkinMaxFiles }
+          });
+        }
         return await backend.checkin(payload.message);
       },
       ["token", "confirmPhrase"]
@@ -540,7 +638,7 @@ function tool(name, description, properties, handler, required = []) {
   };
 }
 
-function prepareConfirmTool({ config, backend, name, description, properties, required, action, confirmPhrase, prepare, confirm }) {
+function prepareConfirmTool({ config, backend, name, description, properties, required, action, confirmPhrase, prepare, revalidate, confirm }) {
   return [
     tool(
       `${name}_prepare`,
@@ -551,7 +649,8 @@ function prepareConfirmTool({ config, backend, name, description, properties, re
         const token = createConfirmToken({
           action,
           payload,
-          ttlSec: config.tokenTtlSec
+          ttlSec: config.tokenTtlSec,
+          context: config.workspace
         });
         return {
           action,
@@ -582,7 +681,8 @@ function prepareConfirmTool({ config, backend, name, description, properties, re
         if (providedPhrase !== confirmPhrase) {
           throw new UvcsError("Invalid confirmPhrase", { code: "INVALID_CONFIRM_PHRASE" });
         }
-        const payload = consumeConfirmToken({ token, action });
+        const payload = consumeConfirmToken({ token, action, context: config.workspace });
+        if (revalidate) await revalidate(payload);
         return await confirm(payload);
       },
       ["token", "confirmPhrase"]
@@ -606,6 +706,17 @@ function countLikelyChangedFiles(statusText) {
     .filter((line) => !line.startsWith("STATUS\u001f"))
     .filter((line) => !line.startsWith("STAGE\u001f"))
     .length;
+}
+
+function fingerprintStatus(statusText) {
+  return crypto.createHash("sha256").update(String(statusText ?? ""), "utf8").digest("hex");
+}
+
+function workspaceChangedError(reason) {
+  return new UvcsError("Workspace changed after prepare; run prepare again before confirming", {
+    code: "WORKSPACE_CHANGED_SINCE_PREPARE",
+    details: { reason }
+  });
 }
 
 function assertCheckinMessage(message) {
