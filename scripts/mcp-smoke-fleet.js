@@ -57,6 +57,21 @@ try {
 
   const summaries = await Promise.all(names.map(async (name, index) => {
     const policy = await client.callTool("uvcs_policy_status", { workspace: name });
+    const setup = await client.callTool("uvcs_setup_status", { workspace: name });
+    assert(setup.policy.workspace.name === name, `${name} setup status returned another workspace`);
+    await client.prepareConfirm("uvcs_style_init", {
+      workspace: name,
+      preset: "unity",
+      baseBranch: "/main"
+    });
+    const namePreview = await client.callTool("uvcs_name_preview", {
+      workspace: name,
+      kind: "branch",
+      type: "feature",
+      title: `Fleet smoke ${index + 1}`,
+      baseBranch: "/main"
+    });
+    assert(namePreview.value === `/main/feature/fleet-smoke-${index + 1}`, `${name} naming rules were not applied`);
     const target = `/main/fleet-smoke-${index + 1}`;
     await client.prepareConfirm("uvcs_branch_create", {
       workspace: name,
@@ -72,6 +87,7 @@ try {
     return {
       name,
       workspace: policy.workspace.path,
+      branchPreview: namePreview.value,
       branch: branch.branchLine
     };
   }));

@@ -1,79 +1,90 @@
 # Production Readiness
 
-UVCS MCP is currently on the stable `1.x` release line. The architecture is intentionally conservative, and production trust is maintained through CI, fake MCP smoke coverage, strict tool policies, security review notes, and compatibility reports.
+UVCS MCP `1.2.0` is production-ready for constrained source-control automation in fixed Plastic SCM / Unity Version Control workspaces.
 
-## Current status
+Production-ready means the MCP server provides a bounded command surface, explicit workspace identity, fail-closed write controls, repeatable setup, release-gated dependencies, and tested single- and multi-workspace workflows. It does not make unrelated repositories atomic and does not replace repository backups, branch protection, or human release ownership.
 
-Already in place:
+## Supported deployment modes
 
-- official MCP TypeScript SDK for protocol lifecycle and stdio transport;
-- strict server-side tool input validation;
-- fixed allowlist of `cm` commands;
-- default `readonly` mode;
-- prepare/confirm for mutating workspace and repository operations;
-- per-workspace serialization for write confirmations;
-- cross-process workspace write locking;
-- state revalidation between prepare and confirm;
-- separate read/write timeouts and bounded process output;
-- manifest-driven one-process routing for up to 50 named workspaces, with explicit per-call workspace selection;
-- optional one-process-per-workspace isolation layout;
-- workspace-bound confirmation tokens, audit logs, and write locks;
-- path-scoped irreversible undo with whole-workspace undo forbidden;
-- workspace path confinement;
-- workspace and repository allowlists;
-- optional JSONL audit logging with `UVCS_AUDIT_LOG`;
-- fake `cm` MCP smoke test for CI without Plastic SCM credentials;
-- read-only cleanup and branch safety helpers instead of destructive delete tools;
-- unit tests, ESLint, syntax checks, release metadata checks, fake smoke, and CI on Node.js 20, 22, and 24;
-- production dependency audit in CI and the publish gate;
-- npm publishing workflow using trusted publishing/OIDC and provenance;
-- documented security review for path escape, token replay, env handling, command construction, and destructive-operation policy;
-- one full Plastic SCM E2E smoke pass on `pas-Kodeks@SRV-IAN-N:8087`;
-- live validation on Plastic SCM `10.0.16.6656+` and Unity Version Control / Unity DevOps Version Control `11.x`;
-- public install, security, compatibility, troubleshooting, support, and contribution docs.
+### One workspace
 
-## Beta criteria
+Use one fixed `UVCS_WORKSPACE`. The initializer pins `UVCS_ALLOWED_WORKSPACES` to that exact path. The recommended production profile is `guarded`, which also pins the detected `repository@server` identity.
 
-Before calling the project beta:
+### Fleet
 
-- test Plastic SCM 10.x on Windows;
-- test Unity Version Control / Unity DevOps Version Control 11.x; done for current `1.0.0` validation set;
-- test at least one cloud workspace and one on-premises or local server workspace;
-- keep the fake `cm` smoke test in CI for server/tool flows without requiring credentials;
-- document command fallbacks, especially `status --includeRevId`;
-- keep `UVCS_ALLOWED_REPOS` and `UVCS_ALLOWED_WORKSPACES` behavior covered by tests;
-- keep all mutating tools behind prepare/confirm.
+Use one manifest-driven MCP process for up to 50 named workspaces. Every tool call requires an explicit `workspace` selector. Backends, policies, audit logs, confirmation contexts, and write locks remain independent.
 
-## 1.x maintenance criteria
+Use `--fleet-layout=isolated` when process-level isolation is preferred over a single fleet process.
 
-For the `1.x` line:
+## Safety guarantees
 
-- publish stable npm releases from signed tags or GitHub Releases;
-- keep supported Node.js and `cm` version ranges documented;
-- keep breaking changes for major versions only;
-- maintain compatibility reports for real-world `cm` configurations;
-- document a recommended runbook for team workspaces;
-- collect field feedback from real Cursor, Codex, Claude, OpenCode, Kiro, or Windsurf users;
-- keep the security review current when command construction, auth, path handling, or write tools change.
+- Default profile is `readonly`.
+- Every command comes from a fixed argv allowlist and runs with `shell: false`.
+- MCP arguments are validated with strict schemas.
+- Generated client configuration pins the workspace path.
+- `guarded` pins both workspace and repository/server identity.
+- Critical writes require short-lived, single-use prepare/confirm tokens.
+- Tokens are action-scoped and workspace-bound.
+- Switch, merge, update, undo, and checkin revalidate relevant workspace state before execution.
+- Writes are serialized in-process and across MCP processes.
+- Paths are canonicalized and confined to the selected workspace.
+- Whole-workspace undo, branch deletion, changeset deletion, repository deletion, repository rename, arbitrary `cm`, and arbitrary shell execution are not exposed.
+- Read/write timeouts and a combined process-output limit are enforced.
+- Audit logs omit tool arguments and confirmation tokens.
 
-## Recommended team runbook
+## Operational preflight
 
-- Use `readonly` mode by default in important workspaces.
-- Use `standard` mode only in a disposable workspace, dev workspace, or release-manager checkout.
-- Run `uvcs_doctor` after installing the MCP server or updating the Plastic SCM / Unity Version Control client.
-- Run `npm run smoke:fake` before opening release pull requests.
-- Run `npm run smoke:fleet` when changing client setup, policy, locking, or prepare/confirm behavior.
-- Set `UVCS_ALLOWED_WORKSPACES` for fixed team checkouts.
-- Set `UVCS_ALLOWED_REPOS` when the workspace should never point to another repository/server.
-- Set `UVCS_AUDIT_LOG` for release-manager or shared-agent checkouts.
-- Require explicit user approval before any `*_confirm` tool call.
-- Use `uvcs_cleanup_candidates` and `uvcs_branch_safety_report` for manual cleanup review instead of exposing branch or changeset deletion to agents.
+For one workspace:
 
-## Not in scope for 1.0
+```bash
+npx -y @proanima/uvcs-mcp@1.2.0 doctor --workspace="D:/Repositories/YourWorkspace"
+```
 
-- Unity Editor automation;
-- server administration;
-- repository deletion or rename;
-- arbitrary shell execution;
-- arbitrary `cm` execution;
-- long-running `cm api` management.
+For a fleet:
+
+```bash
+npx -y @proanima/uvcs-mcp@1.2.0 doctor --manifest=workspaces.json
+```
+
+After the MCP client restarts, call `uvcs_setup_status` for every target. Confirm the workspace path, repository identity, safety profile, write limits, audit destination, and naming/release rules before edits.
+
+## Recommended production policy
+
+- Use `readonly` for investigation, reporting, and unfamiliar repositories.
+- Use `guarded` for normal agent-assisted writes.
+- Use `standard` only in trusted or disposable workspaces.
+- Configure a per-workspace JSONL audit path for shared or release-manager checkouts.
+- Keep checkins small and preserve the default 20-file guard unless the repository has a reviewed reason to raise it.
+- Prepare every target in a mass operation before confirming any target.
+- Stop on the first failure and report completed, failed, and untouched workspaces.
+- Keep `.uvcs-mcp/style.json` under review so branch, checkin, label, and release naming remains deterministic.
+
+## Validation evidence for 1.2.0
+
+- 70 automated tests.
+- ESLint and Node syntax validation.
+- Dependency and production dependency audits with zero known vulnerabilities.
+- Release metadata and npm package dry-run checks.
+- Full single-workspace fake MCP workflow covering branch, switch, add, checkin, label, merge, and final status.
+- Parallel two-workspace fleet smoke covering explicit routing, independent style rules, branch previews, state, locks, and mutations.
+- Read-only live validation on Plastic SCM `10.0.16.6656`, including guarded repository/server detection.
+- Compatibility retained for Unity Version Control / Unity DevOps Version Control `11.x`.
+
+## Known boundaries
+
+- Cross-repository operations are not atomic.
+- A confirmed `cm` process interrupted by the operating system or network can leave normal UVCS pending state; inspect status before retrying.
+- `cm` authentication, server availability, DNS, permissions, and repository-side policies remain external dependencies.
+- Real-server destructive tests are intentionally not part of public CI.
+- Unity Editor automation, server administration, and long-running `cm api` hosting are outside scope.
+
+## Release acceptance checklist
+
+- Version markers agree across package metadata, server metadata, README, wiki, lockfile, and changelog.
+- CI and the local release gate pass.
+- `npm audit` and `npm audit --omit=dev` report zero known vulnerabilities.
+- Single and fleet smoke tests pass.
+- The release commit is on `main`.
+- Tag `v1.2.0` points to the release commit.
+- The GitHub Release uses the reviewed release notes.
+- The npm trusted-publishing workflow completes successfully with provenance.

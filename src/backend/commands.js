@@ -31,6 +31,11 @@ export const CM_COMMANDS = {
     requireWorkspace: true,
     mutation: false
   },
+  statusHeader: {
+    args: ["status", "--header", "--nochanges"],
+    requireWorkspace: true,
+    mutation: false
+  },
   statusMachine: {
     args: ["status", ...MACHINE_READABLE_FLAGS],
     requireWorkspace: true,

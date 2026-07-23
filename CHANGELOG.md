@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 1.2.0 - 2026-07-23
+
+Production multi-workspace release focused on safe fleet automation, reliable setup, and operational hardening.
+
 ### Added
 
 - Fleet manifests configure one MCP server for up to 50 explicitly selected named workspaces.
@@ -12,6 +16,7 @@
 - `uvcs_policy_status` and `uvcs_setup_status` for effective policy, identity, and naming readiness.
 - Cross-process workspace write locking.
 - Separate read/write timeouts and bounded `cm` process output.
+- Fleet-aware `uvcs-mcp doctor --manifest=...` preflight checks.
 
 ### Changed
 
@@ -21,11 +26,24 @@
 - npm initialization defaults to the npm install source; `init-local` remains explicit.
 - Runtime dependencies are pinned to audited versions with patched transitive overrides.
 - Confirmation tokens are bound to the workspace that prepared them.
+- Client initialization warns about paths that are not recognized as UVCS workspaces and prints clear safety/naming next steps.
+- Codex TOML setup replaces existing MCP server descendant tables without leaving duplicate environment blocks.
+- Guarded setup can derive real repository/server identity from a read-only Plastic status header when `plastic.workspace` contains only a workspace name and GUID.
 
 ### Security
 
 - Production dependency audit is now part of CI and the publish gate.
 - Current production dependency audit reports zero known vulnerabilities.
+
+### Tested
+
+- 70 automated tests.
+- Full lint and syntax validation.
+- Dependency and production dependency audits with zero known vulnerabilities.
+- Single-workspace MCP smoke workflow.
+- Parallel two-workspace fleet smoke with independent naming rules and branches.
+- Read-only live validation on Plastic SCM `10.0.16.6656`.
+- npm package dry run.
 
 ## 1.1.0 - 2026-07-02
 

@@ -12,6 +12,10 @@ const checks = [
     pattern: `version: "${version}"`
   },
   {
+    file: "src/cli/init.js",
+    pattern: `@proanima/uvcs-mcp@${version}`
+  },
+  {
     file: "README.md",
     pattern: `Current release: \`${version}\``
   },

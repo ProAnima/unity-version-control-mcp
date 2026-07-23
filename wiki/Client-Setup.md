@@ -27,5 +27,5 @@ node src/cli.js init-local --client=cursor --workspace="D:/Repositories/YourWork
 For multiple workspaces:
 
 ```bash
-npx -y @proanima/uvcs-mcp init --manifest=workspaces.json --client=cursor,codex --print-config
+npx -y @proanima/uvcs-mcp@1.2.0 init --manifest=workspaces.json --client=cursor,codex --print-config
 ```

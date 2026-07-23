@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { readWorkspaceInfo } from "../backend/cm.js";
+import { createCmBackend } from "../backend/cm.js";
 import { loadConfig } from "./env.js";
 
 const SETTING_KEYS = [
@@ -42,7 +42,11 @@ export async function loadFleetConfigs(manifestPath, baseEnv = process.env) {
     }
     let allowedRepos = normalizeStringList(entry.allowedRepos ?? defaults.allowedRepos ?? []);
     if (safety === "guarded" && allowedRepos.length === 0) {
-      allowedRepos = await detectWorkspaceRepos(workspace);
+      allowedRepos = await detectWorkspaceRepos(
+        workspace,
+        entry.cmPath ?? defaults.cmPath,
+        baseEnv
+      );
     }
     if (safety === "guarded" && allowedRepos.length === 0) {
       throw new Error(`Workspace ${name} uses guarded safety and requires allowedRepos`);
@@ -91,8 +95,13 @@ function normalizeStringList(value) {
   return value.map((item) => item.trim());
 }
 
-async function detectWorkspaceRepos(workspace) {
-  const info = await readWorkspaceInfo(workspace);
+async function detectWorkspaceRepos(workspace, cmPath, baseEnv) {
+  const info = await createCmBackend(loadConfig({
+    ...baseEnv,
+    UVCS_WORKSPACE: workspace,
+    UVCS_MCP_MODE: "readonly",
+    UVCS_CM_PATH: cmPath || baseEnv.UVCS_CM_PATH
+  })).workspaceInfo();
   const entries = Object.entries(info);
   const direct = entries.map(([, value]) => String(value ?? "").trim()).filter((value) => value.includes("@"));
   const byKey = Object.fromEntries(entries.map(([key, value]) => [key.toLowerCase(), String(value ?? "").trim()]));

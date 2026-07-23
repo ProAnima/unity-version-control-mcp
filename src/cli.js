@@ -29,7 +29,7 @@ Usage:
   uvcs-mcp              Start MCP stdio server
   uvcs-mcp init         Configure MCP clients
   uvcs-mcp init-local   Configure clients to run this git checkout
-  uvcs-mcp doctor       Check cm, workspace, and server readiness
+  uvcs-mcp doctor       Check one workspace or every workspace in a manifest
 
 Setup:
   --workspace=<path>    Configure one workspace
@@ -38,6 +38,16 @@ Setup:
   --safety=<profile>    readonly | guarded | standard
   --allowed-repos=<ids> Semicolon-separated repository@server allowlist
   --print-config        Preview without writing
+
+Safety profiles:
+  readonly              Inspection and planning only
+  guarded               Recommended writes: pins workspace and repository
+  standard              Writes with workspace pinning; trusted workspaces only
+
+After setup:
+  uvcs-mcp doctor --workspace=<path>
+  uvcs-mcp doctor --manifest=<file>
+  Then restart the MCP client and call uvcs_setup_status.
 
 Environment:
   UVCS_WORKSPACE        Required for normal server use

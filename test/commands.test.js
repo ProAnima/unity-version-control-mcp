@@ -14,11 +14,12 @@ import {
   switchCommand,
   undoCommand
 } from "../src/backend/commands.js";
-import { runCmSpec } from "../src/backend/cm.js";
+import { parseStatusHeaderWorkspaceInfo, parseWorkspaceFile, runCmSpec } from "../src/backend/cm.js";
 
 test("critical cm commands use documented command names and safe argv arrays", () => {
   assert.deepEqual(CM_COMMANDS.statusShort.args, ["status", "--short"]);
   assert.deepEqual(CM_COMMANDS.statusMachine.args, ["status", ...MACHINE_READABLE_FLAGS]);
+  assert.deepEqual(CM_COMMANDS.statusHeader.args, ["status", "--header", "--nochanges"]);
   assert.deepEqual(CM_COMMANDS.updateMachine.args, ["update", "--noinput", ...MACHINE_READABLE_FLAGS]);
   assert.deepEqual(checkinCommand("hello").args, ["checkin", "-c=hello", "--applychanged", ...MACHINE_READABLE_FLAGS]);
   assert.deepEqual(diffFileCommand("Assets/Foo.prefab").args, ["diff", "Assets/Foo.prefab"]);
@@ -67,5 +68,26 @@ test("read commands still require workspace when command needs one", async () =>
   await assert.rejects(
     () => runCmSpec(config, CM_COMMANDS.statusShort),
     /UVCS_WORKSPACE is required/
+  );
+});
+
+test("status header exposes repository and server identity for guarded mode", () => {
+  assert.deepEqual(
+    parseStatusHeaderWorkspaceInfo("/main/feature/test@team/GameClient@server.example:8087 (cs:123 - head)\n"),
+    {
+      repository: "team/GameClient",
+      server: "server.example:8087"
+    }
+  );
+  assert.deepEqual(parseStatusHeaderWorkspaceInfo("cs:100@/main"), {});
+});
+
+test("real Plastic workspace files expose their positional name and guid", () => {
+  assert.deepEqual(
+    parseWorkspaceFile("PhygitalHub\nfb1b6916-1783-45dd-8828-28d26145f3a8\n"),
+    {
+      workspaceName: "PhygitalHub",
+      workspaceGuid: "fb1b6916-1783-45dd-8828-28d26145f3a8"
+    }
   );
 });

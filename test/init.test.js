@@ -5,6 +5,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { replaceTomlTable } from "../src/cli/init.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -23,6 +24,52 @@ test("init-local dry-run emits Cursor config that runs this checkout", async () 
   assert.match(stdout, /"uvcs"/);
   assert.match(stdout, /src\\\\cli\.js|src\/cli\.js/);
   assert.doesNotMatch(stdout, /@proanima\/uvcs-mcp/);
+});
+
+test("npm setup pins the released package version in generated client config", async () => {
+  const { stdout } = await execFileAsync(process.execPath, [
+    "src/cli.js",
+    "init",
+    "--yes",
+    "--dry-run",
+    "--client=cursor",
+    "--workspace=."
+  ]);
+
+  assert.match(stdout, /@proanima\/uvcs-mcp@1\.2\.0/);
+});
+
+test("Codex TOML merge replaces an existing server and all descendant tables", () => {
+  const existing = [
+    "model = \"gpt-5\"",
+    "",
+    "[mcp_servers.uvcs]",
+    "command = \"old\"",
+    "args = [\"old.js\"]",
+    "",
+    "[mcp_servers.uvcs.env]",
+    "UVCS_WORKSPACE = \"old-workspace\"",
+    "",
+    "[mcp_servers.other]",
+    "command = \"keep\"",
+    ""
+  ].join("\n");
+  const replacement = [
+    "[mcp_servers.uvcs]",
+    "command = \"new\"",
+    "args = [\"new.js\"]",
+    "",
+    "[mcp_servers.uvcs.env]",
+    "UVCS_FLEET_MANIFEST = \"fleet.json\"",
+    ""
+  ].join("\n");
+
+  const merged = replaceTomlTable(existing, "mcp_servers.uvcs", replacement);
+
+  assert.equal((merged.match(/\[mcp_servers\.uvcs\]/g) ?? []).length, 1);
+  assert.equal((merged.match(/\[mcp_servers\.uvcs\.env\]/g) ?? []).length, 1);
+  assert.doesNotMatch(merged, /old-workspace|old\.js/);
+  assert.match(merged, /\[mcp_servers\.other\]\ncommand = "keep"/);
 });
 
 test("init-local dry-run emits Codex TOML mcp server", async () => {
@@ -161,6 +208,25 @@ test("guarded safety requires an explicit repository allowlist", async () => {
     ]),
     /requires allowedRepos/
   );
+});
+
+test("single-workspace setup reports the configured workspace name and UVCS warning", async () => {
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "uvcs-mcp-not-workspace-"));
+  const { stdout } = await execFileAsync(process.execPath, [
+    "src/cli.js",
+    "init-local",
+    "--yes",
+    "--dry-run",
+    "--client=cursor",
+    `--workspace=${workspace}`,
+    "--name=cartalith",
+    "--safety=readonly"
+  ]);
+
+  assert.match(stdout, /cartalith:/);
+  assert.match(stdout, /not currently recognized as a UVCS workspace/);
+  assert.match(stdout, /uvcs_setup_status/);
+  assert.match(stdout, /uvcs_style_init_prepare/);
 });
 
 test("guarded safety detects repository identity from the workspace", async () => {

@@ -36,14 +36,22 @@ Copy `templates/fleet/workspaces.example.json`, then edit the paths and reposito
 Preview all client changes:
 
 ```bash
-npx -y @proanima/uvcs-mcp init --manifest=workspaces.json --client=cursor,codex --print-config
+npx -y @proanima/uvcs-mcp@1.2.0 init --manifest=workspaces.json --client=cursor,codex --print-config
 ```
 
 Apply them after review:
 
 ```bash
-npx -y @proanima/uvcs-mcp init --manifest=workspaces.json --client=cursor,codex
+npx -y @proanima/uvcs-mcp@1.2.0 init --manifest=workspaces.json --client=cursor,codex
 ```
+
+Validate all entries before restarting the MCP client:
+
+```bash
+npx -y @proanima/uvcs-mcp@1.2.0 doctor --manifest=workspaces.json
+```
+
+Fleet doctor reports `cm`, login, workspace status, and CLI capability results separately for every named workspace.
 
 By default the example creates one MCP server named `uvcs`. Calls look like:
 
@@ -61,7 +69,7 @@ For process-level isolation, add `--fleet-layout=isolated`. That creates MCP ser
 ## Safety Profiles
 
 - `readonly`: inspection and planning only. This is the default.
-- `guarded`: enables writes, pins both workspace and repository identity, defaults checkins to 20 files, and uses a 120-second confirmation TTL. Repository identity is detected from `.plastic/plastic.workspace` when possible; otherwise `allowedRepos` is required.
+- `guarded`: enables writes, pins both workspace and repository identity, defaults checkins to 20 files, and uses a 120-second confirmation TTL. Repository identity is detected from workspace metadata or a read-only `cm status` header when possible; otherwise `allowedRepos` is required.
 - `standard`: enables guarded prepare/confirm writes and pins the workspace path, but does not require a repository allowlist. Use it only for trusted or disposable workspaces.
 
 Generated configuration always sets `UVCS_ALLOWED_WORKSPACES` to the exact workspace path. Safety settings live in the MCP client configuration or fleet manifest rather than a versioned workspace file, so repository content cannot grant itself additional privileges.
@@ -79,7 +87,7 @@ Naming conventions remain in `.uvcs-mcp/style.json`. Use `uvcs_style_setup_check
 
 ## Recommended Mass-Work Flow
 
-For a request such as “apply the same package change to the client and server workspaces”:
+For a request such as "apply the same package change to the client and server workspaces":
 
 1. Call `uvcs_setup_status`, `uvcs_workspace_status`, and `uvcs_branch_info` with every target workspace selector.
 2. Verify that every workspace has the expected identity, branch, repository, and naming rules.

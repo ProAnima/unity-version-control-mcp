@@ -81,7 +81,7 @@ node src/cli.js init-local --client=cursor --workspace="$HOME/Repositories/YourW
 ## From npm
 
 ```bash
-npx -y @proanima/uvcs-mcp init
+npx -y @proanima/uvcs-mcp@1.2.0 init
 ```
 
 The initializer merges an `uvcs` MCP server block into supported client configs and keeps existing `mcpServers` entries.
@@ -89,17 +89,21 @@ The initializer merges an `uvcs` MCP server block into supported client configs 
 Choose a safety profile explicitly for shared workspaces:
 
 ```bash
-npx -y @proanima/uvcs-mcp init --workspace="D:/Repositories/YourWorkspace" --safety=guarded --allowed-repos="repository@server:8087"
+npx -y @proanima/uvcs-mcp@1.2.0 init --workspace="D:/Repositories/YourWorkspace" --safety=guarded --allowed-repos="repository@server:8087"
 ```
 
 Use `--manifest=workspaces.json` for one MCP server that routes every call to an explicit named workspace. Add `--fleet-layout=isolated` for one MCP process per workspace. See [Multi-Workspace and Fleet Work](multi-workspace.md).
+
+The initializer warns when a configured path does not currently contain `.plastic/plastic.workspace`. Validate one workspace with `uvcs-mcp doctor --workspace=<path>` or an entire fleet with `uvcs-mcp doctor --manifest=workspaces.json`.
+
+After restarting the MCP client, call `uvcs_setup_status`. If project naming rules are missing, create them with `uvcs_style_init_prepare` and `uvcs_style_init_confirm` in `guarded` or `standard` mode.
 
 ## Manual npm config
 
 ```json
 {
   "command": "npx",
-  "args": ["-y", "@proanima/uvcs-mcp"],
+  "args": ["-y", "@proanima/uvcs-mcp@1.2.0"],
   "env": {
     "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
     "UVCS_MCP_MODE": "readonly"

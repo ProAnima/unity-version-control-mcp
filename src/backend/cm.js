@@ -71,7 +71,7 @@ export function createCmBackend(config) {
     version: () => runCmSpec(config, CM_COMMANDS.version).then(toRawResult),
     showCommands: () => runCmSpec(config, CM_COMMANDS.showCommands).then(toRawResult),
     apiHelp: () => runCmSpec(config, CM_COMMANDS.apiHelp).then(toRawResult),
-    workspaceInfo: () => readWorkspaceInfo(config.workspace)
+    workspaceInfo: () => resolveWorkspaceInfo(config)
   };
 }
 
@@ -113,15 +113,59 @@ export async function readWorkspaceInfo(workspace) {
   }
 }
 
+export async function resolveWorkspaceInfo(config) {
+  const fileInfo = await readWorkspaceInfo(config.workspace);
+  if (hasWorkspaceIdentity(fileInfo)) return fileInfo;
+
+  try {
+    const result = await runCmSpec(config, CM_COMMANDS.statusHeader);
+    return {
+      ...fileInfo,
+      ...parseStatusHeaderWorkspaceInfo(result.stdout)
+    };
+  } catch {
+    return fileInfo;
+  }
+}
+
+export function parseStatusHeaderWorkspaceInfo(text) {
+  const header = String(text ?? "").split(/\r?\n/).find((line) => line.trim().length > 0)?.trim() ?? "";
+  const identity = header.replace(/\s+\(cs:.*$/, "");
+  const parts = identity.split("@");
+  if (parts.length < 3) return {};
+  const repository = parts.slice(1, -1).join("@").trim();
+  const server = parts.at(-1).trim();
+  if (!repository || !server) return {};
+  return { repository, server };
+}
+
 export function parseWorkspaceFile(text) {
   const info = {};
+  const positional = [];
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
     const separator = line.includes("=") ? "=" : line.includes(":") ? ":" : null;
-    if (!separator) continue;
+    if (!separator) {
+      positional.push(line);
+      continue;
+    }
     const [key, ...rest] = line.split(separator);
     info[key.trim()] = rest.join(separator).trim();
   }
+  if (Object.keys(info).length === 0 && positional.length > 0) {
+    info.workspaceName = positional[0];
+    if (positional[1]) info.workspaceGuid = positional[1];
+  }
   return info;
+}
+
+function hasWorkspaceIdentity(info) {
+  const entries = Object.entries(info ?? {});
+  const values = entries.map(([, value]) => String(value ?? "").trim());
+  if (values.some((value) => value.includes("@"))) return true;
+  const byKey = Object.fromEntries(entries.map(([key, value]) => [key.toLowerCase(), String(value ?? "").trim()]));
+  const repository = byKey.repository || byKey.repo || byKey.reponame;
+  const server = byKey.server || byKey.repositoryserver || byKey.servername;
+  return Boolean(repository && server);
 }

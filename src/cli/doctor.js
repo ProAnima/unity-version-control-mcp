@@ -1,18 +1,60 @@
 import { loadConfig } from "../config/env.js";
+import { loadFleetConfigs } from "../config/fleet.js";
 import { createCmBackend } from "../backend/cm.js";
 import { createTools } from "../tools/index.js";
 
 export async function runDoctor(args = []) {
   const env = { ...process.env };
-  applyCliEnv(args, env);
+  const options = applyCliEnv(args, env);
+  if (options.manifest) {
+    await runFleetDoctor(options.manifest, env);
+    return;
+  }
 
   const config = loadConfig(env);
-  const backend = createCmBackend(config);
-  const tools = createTools({ config, backend });
-  const report = await tools.call("uvcs_doctor", {});
+  const report = await createTools({
+    config,
+    backend: createCmBackend(config)
+  }).call("uvcs_doctor", {});
 
   process.stdout.write("UVCS MCP Doctor\n");
   process.stdout.write("---------------\n");
+  printDoctorReport(report);
+  setDoctorExitCode(report);
+}
+
+async function runFleetDoctor(manifestPath, env) {
+  const fleet = await loadFleetConfigs(manifestPath, env);
+  const results = await Promise.all(fleet.configs.map(async (config) => {
+    try {
+      const report = await createTools({
+        config,
+        backend: createCmBackend(config)
+      }).call("uvcs_doctor", {});
+      return { config, report };
+    } catch (error) {
+      return { config, error };
+    }
+  }));
+
+  process.stdout.write("UVCS MCP Fleet Doctor\n");
+  process.stdout.write("---------------------\n");
+  process.stdout.write(`Manifest:   ${fleet.manifestPath}\n`);
+  process.stdout.write(`Workspaces: ${results.length}\n`);
+  for (const result of results) {
+    process.stdout.write(`\n[${result.config.workspaceName}]\n`);
+    if (result.error) {
+      process.stdout.write(`Workspace: ${result.config.workspace}\n`);
+      process.stdout.write(`Error:     ${result.error.message}\n`);
+      process.exitCode = 1;
+      continue;
+    }
+    printDoctorReport(result.report);
+    setDoctorExitCode(result.report);
+  }
+}
+
+function printDoctorReport(report) {
   process.stdout.write(`Node:      ${report.node}\n`);
   process.stdout.write(`Mode:      ${report.mode}\n`);
   process.stdout.write(`cm:        ${report.cmPath} (${report.cmAvailable ? "ok" : "failed"})\n`);
@@ -36,17 +78,25 @@ export async function runDoctor(args = []) {
     for (const hint of doctorHints(report)) {
       process.stdout.write(`- ${hint}\n`);
     }
-    process.exitCode = 1;
   }
 }
 
 function applyCliEnv(args, env) {
+  const options = {};
   for (const arg of args) {
-    const [key, value] = arg.split("=");
+    const separator = arg.indexOf("=");
+    const key = separator >= 0 ? arg.slice(0, separator) : arg;
+    const value = separator >= 0 ? arg.slice(separator + 1) : "";
     if (key === "--workspace" && value) env.UVCS_WORKSPACE = value;
     if (key === "--cm" && value) env.UVCS_CM_PATH = value;
     if (key === "--mode" && value) env.UVCS_MCP_MODE = value;
+    if (key === "--manifest" && value) options.manifest = value;
   }
+  return options;
+}
+
+function setDoctorExitCode(report) {
+  if (report.errors.length > 0) process.exitCode = 1;
 }
 
 function doctorHints(report) {

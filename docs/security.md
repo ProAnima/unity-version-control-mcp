@@ -42,7 +42,7 @@ UVCS_ALLOWED_REPOS=pas-Kodeks@SRV-IAN-N:8087
 
 Use semicolons for multiple entries.
 
-Client setup always pins `UVCS_ALLOWED_WORKSPACES` to the configured workspace. The `guarded` safety profile detects repository identity from `.plastic/plastic.workspace` or requires an explicit repository allowlist. Run `uvcs_setup_status` to inspect the effective policy and workspace identity.
+Client setup always pins `UVCS_ALLOWED_WORKSPACES` to the configured workspace. The `guarded` safety profile detects repository identity from `.plastic/plastic.workspace` when it contains repository metadata, otherwise it uses the read-only `cm status --header --nochanges` identity. If neither is available, an explicit repository allowlist is required. Run `uvcs_setup_status` to inspect the effective policy and workspace identity.
 
 ## Process limits
 

@@ -4,7 +4,8 @@ import path from "node:path";
 import readline from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { stdin as input, stdout as output } from "node:process";
-import { readWorkspaceInfo } from "../backend/cm.js";
+import { createCmBackend } from "../backend/cm.js";
+import { loadConfig } from "../config/env.js";
 import {
   claudeDesktopConfigPath,
   codexConfigPath,
@@ -29,6 +30,7 @@ const CLIENTS = new Map([
 ]);
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const NPM_PACKAGE_SPEC = "@proanima/uvcs-mcp@1.2.0";
 
 export async function runInit(args = []) {
   const flags = parseFlags(args);
@@ -64,6 +66,9 @@ export async function runInit(args = []) {
     process.stdout.write(`Workspaces: ${workspaceEntries.length}\n`);
     for (const entry of workspaceEntries) {
       process.stdout.write(`- ${entry.name}: ${entry.block.env.UVCS_WORKSPACE} (${entry.safety}, ${entry.block.env.UVCS_MCP_MODE}, source=${entry.source})\n`);
+      for (const warning of entry.warnings ?? []) {
+        process.stdout.write(`  Warning: ${warning}\n`);
+      }
     }
     if (flags.manifest) process.stdout.write(`Fleet layout: ${fleetLayout} (${serverEntries.length} MCP server${serverEntries.length === 1 ? "" : "s"})\n`);
     if (serverEntries.length === 1) process.stdout.write(`Source: ${serverEntries[0].source}\n`);
@@ -81,6 +86,11 @@ export async function runInit(args = []) {
       const result = await mergeClientConfig(target, serverEntries, flags);
       process.stdout.write(`${result.action}: ${result.file}\n`);
     }
+    process.stdout.write("Next: restart the MCP client and call uvcs_setup_status.\n");
+    if (flags.manifest && fleetLayout === "single") {
+      process.stdout.write("Fleet tools require an explicit workspace name from the manifest on every call.\n");
+    }
+    process.stdout.write("If naming rules are missing, use uvcs_style_init_prepare and uvcs_style_init_confirm in guarded or standard mode.\n");
   } finally {
     rl?.close();
   }
@@ -101,7 +111,7 @@ function createFleetServerEntry({ name, manifestPath, installSource }) {
       }
     : {
         command: "npx",
-        args: ["-y", "@proanima/uvcs-mcp"],
+        args: ["-y", NPM_PACKAGE_SPEC],
         env
       };
   return {
@@ -114,23 +124,25 @@ function createFleetServerEntry({ name, manifestPath, installSource }) {
 
 async function createSingleWorkspaceEntry({ flags, interactive, rl, defaultInstallSource }) {
   const workspace = flags.workspace || process.env.UVCS_WORKSPACE || (interactive ? await rl.question("Workspace path: ") : process.cwd());
+  const workspaceName = normalizeServerName(flags.name || "uvcs");
   const requestedMode = flags.mode || process.env.UVCS_MCP_MODE;
   const safety = flags.safety || (requestedMode === "standard" ? "standard" : "readonly");
   const mode = requestedMode || modeForSafety(safety);
   let allowedRepos = splitValues(flags.allowedRepos || process.env.UVCS_ALLOWED_REPOS);
   if (safety === "guarded" && allowedRepos.length === 0) {
-    allowedRepos = await detectWorkspaceRepos(workspace);
+    allowedRepos = await detectWorkspaceRepos(workspace, flags.cm || process.env.UVCS_CM_PATH);
   }
-  validateSafety(safety, allowedRepos, "uvcs");
-  validateSafetyMode(safety, mode, "uvcs");
+  validateSafety(safety, allowedRepos, workspaceName);
+  validateSafetyMode(safety, mode, workspaceName);
 
   return {
-    name: normalizeServerName(flags.name || "uvcs"),
+    name: workspaceName,
     safety,
     source: defaultInstallSource,
+    warnings: await workspaceSetupWarnings(path.resolve(workspace)),
     block: makeServerBlock({
       workspace,
-      workspaceName: normalizeServerName(flags.name || "uvcs"),
+      workspaceName,
       safetyProfile: safety,
       mode,
       cmPath: flags.cm || process.env.UVCS_CM_PATH,
@@ -184,7 +196,7 @@ async function loadManifestEntries(manifestPath, { flags, defaultInstallSource }
     const safety = workspaceConfig.safety ?? defaults.safety ?? "readonly";
     let allowedRepos = normalizeStringList(workspaceConfig.allowedRepos ?? defaults.allowedRepos ?? []);
     if (safety === "guarded" && allowedRepos.length === 0) {
-      allowedRepos = await detectWorkspaceRepos(workspace);
+      allowedRepos = await detectWorkspaceRepos(workspace, workspaceConfig.cmPath ?? defaults.cmPath ?? flags.cm ?? process.env.UVCS_CM_PATH);
     }
     validateSafety(safety, allowedRepos, name);
     const mode = workspaceConfig.mode ?? defaults.mode ?? modeForSafety(safety);
@@ -197,6 +209,7 @@ async function loadManifestEntries(manifestPath, { flags, defaultInstallSource }
       name: `uvcs-${name}`,
       safety,
       source: workspaceConfig.installSource ?? defaults.installSource ?? defaultInstallSource,
+      warnings: await workspaceSetupWarnings(workspace),
       block: makeServerBlock({
         workspace,
         workspaceName: name,
@@ -267,8 +280,33 @@ function resolveOptionalPath(baseDir, value) {
   return path.resolve(baseDir, value);
 }
 
-async function detectWorkspaceRepos(workspace) {
-  const info = await readWorkspaceInfo(path.resolve(workspace));
+async function workspaceSetupWarnings(workspace) {
+  try {
+    const stat = await fs.stat(workspace);
+    if (!stat.isDirectory()) return ["Path exists but is not a directory."];
+  } catch (error) {
+    if (error?.code === "ENOENT") return ["Path does not exist yet."];
+    throw error;
+  }
+
+  try {
+    await fs.access(path.join(workspace, ".plastic", "plastic.workspace"));
+    return [];
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return ["Path is not currently recognized as a UVCS workspace (.plastic/plastic.workspace is missing)."];
+    }
+    throw error;
+  }
+}
+
+async function detectWorkspaceRepos(workspace, cmPath) {
+  const info = await createCmBackend(loadConfig({
+    ...process.env,
+    UVCS_WORKSPACE: path.resolve(workspace),
+    UVCS_MCP_MODE: "readonly",
+    UVCS_CM_PATH: cmPath || process.env.UVCS_CM_PATH
+  })).workspaceInfo();
   const entries = Object.entries(info);
   const direct = entries
     .map(([, value]) => String(value ?? "").trim())
@@ -309,7 +347,7 @@ function makeServerBlock({ workspace, workspaceName, safetyProfile, mode, cmPath
 
   return {
     command: "npx",
-    args: ["-y", "@proanima/uvcs-mcp"],
+    args: ["-y", NPM_PACKAGE_SPEC],
     env
   };
 }
@@ -602,17 +640,38 @@ function renderCodexToml(serverBlock, serverName) {
   return `${lines.join("\n")}\n`;
 }
 
-function replaceTomlTable(text, tableName, block) {
-  const normalized = text.endsWith("\n") || text.length === 0 ? text : `${text}\n`;
-  const escaped = escapeRegExp(tableName);
-  const sectionPattern = new RegExp(`(^|\\n)\\[${escaped}\\][\\s\\S]*?(?=\\n\\[(?!${escaped}(?:\\.|\\]))[^\\]]+\\]|$)`, "m");
-
-  if (sectionPattern.test(normalized)) {
-    return normalized.replace(sectionPattern, (match, prefix) => `${prefix}${block.trimEnd()}\n`);
+export function replaceTomlTable(text, tableName, block) {
+  const normalized = text.replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
+  const sectionStarts = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const name = tomlTableName(lines[index]);
+    if (name) sectionStarts.push({ index, name });
   }
 
-  const separator = normalized.trim().length > 0 ? "\n" : "";
-  return `${normalized}${separator}${block}`;
+  const matchingRanges = sectionStarts
+    .map((section, index) => ({
+      start: section.index,
+      end: sectionStarts[index + 1]?.index ?? lines.length,
+      matches: section.name === tableName || section.name.startsWith(`${tableName}.`)
+    }))
+    .filter((range) => range.matches);
+
+  if (matchingRanges.length === 0) {
+    const prefix = normalized.trim().length > 0 ? `${normalized.trimEnd()}\n\n` : "";
+    return `${prefix}${block.trimEnd()}\n`;
+  }
+
+  const replacementAt = matchingRanges[0].start;
+  const skipped = new Set(matchingRanges.flatMap((range) => (
+    Array.from({ length: range.end - range.start }, (_, offset) => range.start + offset)
+  )));
+  const output = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (index === replacementAt) output.push(...block.trimEnd().split("\n"));
+    if (!skipped.has(index)) output.push(lines[index]);
+  }
+  return `${output.join("\n").trimEnd()}\n`;
 }
 
 function tomlArray(values) {
@@ -623,6 +682,7 @@ function tomlString(value) {
   return JSON.stringify(String(value));
 }
 
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function tomlTableName(line) {
+  const match = String(line).match(/^\s*\[([A-Za-z0-9_.-]+)\]\s*(?:#.*)?$/);
+  return match?.[1]?.trim() || "";
 }
