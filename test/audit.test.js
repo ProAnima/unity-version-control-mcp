@@ -7,7 +7,7 @@ import { auditToolCall } from "../src/services/audit.js";
 
 test("auditToolCall appends JSONL audit entries without requiring tool arguments", async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "uvcs-mcp-audit-"));
-  const auditLogPath = path.join(dir, "audit.jsonl");
+  const auditLogPath = path.join(dir, "audit", "operations.jsonl");
 
   await auditToolCall({ auditLogPath }, {
     tool: "uvcs_workspace_status",

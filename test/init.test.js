@@ -8,6 +8,7 @@ import { promisify } from "node:util";
 import { replaceTomlTable } from "../src/cli/init.js";
 
 const execFileAsync = promisify(execFile);
+const packageVersion = JSON.parse(await fs.readFile(new URL("../package.json", import.meta.url), "utf8")).version;
 
 test("init-local dry-run emits Cursor config that runs this checkout", async () => {
   const { stdout } = await execFileAsync(process.execPath, [
@@ -36,7 +37,7 @@ test("npm setup pins the released package version in generated client config", a
     "--workspace=."
   ]);
 
-  assert.match(stdout, /@proanima\/uvcs-mcp@1\.2\.0/);
+  assert.match(stdout, new RegExp(`@proanima/uvcs-mcp@${packageVersion.replaceAll(".", "\\.")}`));
 });
 
 test("Codex TOML merge replaces an existing server and all descendant tables", () => {

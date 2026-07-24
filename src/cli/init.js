@@ -30,7 +30,7 @@ const CLIENTS = new Map([
 ]);
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const NPM_PACKAGE_SPEC = "@proanima/uvcs-mcp@1.2.0";
+const NPM_PACKAGE_SPEC = "@proanima/uvcs-mcp@1.2.1";
 
 export async function runInit(args = []) {
   const flags = parseFlags(args);

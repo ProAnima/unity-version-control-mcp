@@ -79,6 +79,13 @@ test("status header exposes repository and server identity for guarded mode", ()
       server: "server.example:8087"
     }
   );
+  assert.deepEqual(
+    parseStatusHeaderWorkspaceInfo("cs:123@team/GameClient@server.example:8087 (head:456)\n"),
+    {
+      repository: "team/GameClient",
+      server: "server.example:8087"
+    }
+  );
   assert.deepEqual(parseStatusHeaderWorkspaceInfo("cs:100@/main"), {});
 });
 

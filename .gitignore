@@ -8,3 +8,4 @@ coverage/
 *.tgz
 .env.*
 !.env.example
+.cursor/

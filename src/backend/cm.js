@@ -130,7 +130,10 @@ export async function resolveWorkspaceInfo(config) {
 
 export function parseStatusHeaderWorkspaceInfo(text) {
   const header = String(text ?? "").split(/\r?\n/).find((line) => line.trim().length > 0)?.trim() ?? "";
-  const identity = header.replace(/\s+\(cs:.*$/, "");
+  // Plastic uses different parenthesized suffixes for a clean workspace
+  // (`(cs:… - head)`) and a workspace with pending changes (`(head:…)`).
+  // Neither suffix is part of the repository server identity.
+  const identity = header.replace(/\s+\([^)]*\)\s*$/, "");
   const parts = identity.split("@");
   if (parts.length < 3) return {};
   const repository = parts.slice(1, -1).join("@").trim();

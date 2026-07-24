@@ -33,9 +33,9 @@ The project intentionally does not require a real Plastic SCM / Unity Version Co
 Example:
 
 ```bash
-git tag -a v1.2.0 -m "UVCS MCP 1.2.0"
-git push origin v1.2.0
-gh release create v1.2.0 --title "UVCS MCP 1.2.0" --notes-file docs/releases/v1.2.0.md
+git tag -a v1.2.1 -m "UVCS MCP 1.2.1"
+git push origin v1.2.1
+gh release create v1.2.1 --title "UVCS MCP 1.2.1" --notes-file docs/releases/v1.2.1.md
 ```
 
 Publishing the GitHub Release triggers `.github/workflows/publish.yml`.

@@ -6,7 +6,7 @@ Safe MCP server for Plastic SCM, Unity Version Control, and Unity DevOps Version
 
 UVCS MCP connects AI IDEs and coding agents to the local `cm` CLI through a fixed allowlist of documented SCM commands. It helps agents inspect source-control workspace state, prepare changes, create branches and labels, run guarded checkins, and perform merges without arbitrary shell access.
 
-Current release: `1.2.0`. Supported `cm` clients: **10.0.16.6656 and newer**, including Unity Version Control / Unity DevOps Version Control **11.x**.
+Current release: `1.2.1`. Supported `cm` clients: **10.0.16.6656 and newer**, including Unity Version Control / Unity DevOps Version Control **11.x**.
 
 ## Requirements
 
@@ -26,7 +26,7 @@ It works with the Plastic SCM / Unity Version Control `cm` CLI and focuses on so
 For one workspace, start with the `guarded` profile:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.2.0 init \
+npx -y @proanima/uvcs-mcp@1.2.1 init \
   --client=cursor,codex \
   --workspace="D:/Repositories/YourWorkspace" \
   --safety=guarded \
@@ -36,7 +36,7 @@ npx -y @proanima/uvcs-mcp@1.2.0 init \
 Review the preview, remove `--print-config` to apply it, and validate the result:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.2.0 doctor \
+npx -y @proanima/uvcs-mcp@1.2.1 doctor \
   --workspace="D:/Repositories/YourWorkspace"
 ```
 
@@ -107,7 +107,7 @@ If `cm` is not in `PATH`, add `--cm=/path/to/cm` or set `UVCS_CM_PATH`.
 ## npm Install
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.2.0 init --client=cursor,codex --workspace="D:/Repositories/YourWorkspace" --safety=guarded
+npx -y @proanima/uvcs-mcp@1.2.1 init --client=cursor,codex --workspace="D:/Repositories/YourWorkspace" --safety=guarded
 ```
 
 `init` uses the npm package as its install source. Use `init-local` only when client configuration should run the current git checkout.
@@ -117,7 +117,7 @@ Manual MCP block:
 ```json
 {
   "command": "npx",
-  "args": ["-y", "@proanima/uvcs-mcp@1.2.0"],
+  "args": ["-y", "@proanima/uvcs-mcp@1.2.1"],
   "env": {
     "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
     "UVCS_MCP_MODE": "readonly"
@@ -186,7 +186,7 @@ Manual MCP block:
 Use a fleet manifest to configure one MCP server for up to 50 named workspaces:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.2.0 init --manifest=workspaces.json --client=cursor,codex --print-config
+npx -y @proanima/uvcs-mcp@1.2.1 init --manifest=workspaces.json --client=cursor,codex --print-config
 ```
 
 Start from `templates/fleet/workspaces.example.json`. See [Multi-Workspace and Fleet Work](docs/multi-workspace.md) for safety profiles and the recommended prepare-all/confirm-each workflow.
@@ -196,7 +196,7 @@ In fleet mode every tool call requires an explicit `workspace` selector. Use `--
 Validate every configured workspace before restarting the client:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.2.0 doctor --manifest=workspaces.json
+npx -y @proanima/uvcs-mcp@1.2.1 doctor --manifest=workspaces.json
 ```
 
 For mass work, inspect every target first, prepare all writes, present one combined plan, and confirm each workspace independently. Cross-repository operations are not atomic.
@@ -235,7 +235,7 @@ The smoke test creates temporary branches, labels, checkins, and a merge through
 - [Security Review](docs/security-review.md)
 - [Compatibility](docs/compatibility.md)
 - [Publishing](docs/publishing.md)
-- [Release notes: 1.2.0](docs/releases/v1.2.0.md)
+- [Release notes: 1.2.1](docs/releases/v1.2.1.md)
 - [Automation Style](docs/automation-style.md)
 - [Production Readiness](docs/production-readiness.md)
 - [Troubleshooting](docs/troubleshooting.md)

@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 1.2.1 - 2026-07-24
+
+Patch release for reliable guarded fleet operation on real Plastic SCM workspaces.
+
+### Fixed
+
+- Guarded repository identity parsing now removes both clean-workspace and pending-change Plastic status suffixes, preventing false allowlist denials for valid workspaces with local changes.
+- JSONL audit logging now creates missing parent directories automatically, so fleet manifests can use separate audit log paths without manual directory setup.
+- Cursor MCP configuration directories are excluded from source control to keep machine-specific fleet settings local.
+
+### Validated
+
+- 70 automated tests, lint, and syntax validation.
+- Live guarded fleet doctor across four Plastic SCM workspaces.
+- Live MCP prepare/confirm branch creation in four independently pinned repositories.
+
 ## 1.2.0 - 2026-07-23
 
 Production multi-workspace release focused on safe fleet automation, reliable setup, and operational hardening.
