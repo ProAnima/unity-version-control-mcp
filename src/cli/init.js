@@ -26,14 +26,19 @@ const INSTALL_SOURCES = ["npm", "local"];
 const MODES = ["readonly", "standard"];
 const FLEET_LAYOUTS = ["single", "isolated"];
 
+// windowsCmdShim: on native Windows, start npx through `cmd /c` because the
+// client is not confirmed to resolve npx.cmd itself. Claude Code, Claude
+// Desktop, Cursor, Codex (0.59+), Kiro, and OpenCode spawn npx directly.
 const CLIENTS = {
   antigravity: {
     scope: "project",
+    windowsCmdShim: true,
     file: (ctx) => path.join(ctx.projectDir, ".agents", "mcp_config.json"),
     note: "Antigravity builds older than the .agents/ layout read ~/.gemini/antigravity/mcp_config.json; copy the entry there if the server does not show up."
   },
   "antigravity-global": {
     scope: "user",
+    windowsCmdShim: true,
     file: (ctx) => antigravityGlobalConfigPath(ctx),
     note: "Antigravity builds older than the ~/.gemini/config/ layout read ~/.gemini/antigravity/mcp_config.json; copy the entry there if the server does not show up."
   },
@@ -85,6 +90,7 @@ const CLIENTS = {
   },
   windsurf: {
     scope: "user",
+    windowsCmdShim: true,
     file: (ctx) => windsurfConfigPath(ctx),
     note: "Windsurf was renamed Devin Desktop; if your build reads ~/.config/devin/mcp_config.json (Windows: %APPDATA%\\devin\\mcp_config.json), copy the entry there."
   }
@@ -284,7 +290,7 @@ async function configureClients(flags, ctx, rl) {
 
   if (clients.includes("claude-code")) {
     ctx.write("\nClaude Code user scope (instead of the project .mcp.json):\n");
-    for (const entry of serverEntries) {
+    for (const entry of entriesForClient("claude-code", serverEntries, ctx)) {
       ctx.write(`  ${claudeCodeAddCommand(entry, ctx.platform)}\n`);
     }
   }
@@ -660,11 +666,16 @@ function launchCommand(installSource, ctx) {
   if (installSource === "local") {
     return { command: ctx.execPath, args: [path.join(ctx.packageRoot, "src", "cli.js")] };
   }
-  // Claude Code on native Windows and Rust-based clients such as Codex cannot
-  // spawn the npx.cmd shim directly, so it is started through cmd.
-  return ctx.platform === "win32"
-    ? { command: "cmd", args: ["/c", "npx", "-y", NPM_PACKAGE_SPEC] }
-    : { command: "npx", args: ["-y", NPM_PACKAGE_SPEC] };
+  return { command: "npx", args: ["-y", NPM_PACKAGE_SPEC] };
+}
+
+// On native Windows `npx` is the npx.cmd shim. Clients that spawn commands
+// without resolving .cmd files get it through `cmd /c`; the rest run npx directly.
+function entriesForClient(client, serverEntries, ctx) {
+  if (ctx.platform !== "win32" || !CLIENTS[client].windowsCmdShim) return serverEntries;
+  return serverEntries.map((entry) => entry.block.command === "npx"
+    ? { ...entry, block: { ...entry.block, command: "cmd", args: ["/c", "npx", ...entry.block.args] } }
+    : entry);
 }
 
 function makeServerBlock({ workspace, workspaceName, safetyProfile, mode, cmPath, installSource, allowedRepos = [], checkinMaxFiles, tokenTtlSec, auditLog, readTimeoutMs, writeTimeoutMs, maxOutputBytes, ctx }) {
@@ -735,9 +746,10 @@ async function samePath(left, right, platform) {
 async function prepareTarget(client, serverEntries, ctx) {
   const spec = CLIENTS[client];
   const target = { client, scope: spec.scope, file: spec.file(ctx) };
+  const entries = entriesForClient(client, serverEntries, ctx);
   return spec.format === "toml"
-    ? { ...target, ...(await prepareTomlTarget(target.file, serverEntries)) }
-    : { ...target, ...(await prepareJsonTarget(spec, target.file, serverEntries)) };
+    ? { ...target, ...(await prepareTomlTarget(target.file, entries)) }
+    : { ...target, ...(await prepareJsonTarget(spec, target.file, entries)) };
 }
 
 async function prepareJsonTarget(spec, file, serverEntries) {

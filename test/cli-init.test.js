@@ -41,20 +41,46 @@ async function init(box, args, overrides = {}) {
 const readJson = async (file) => JSON.parse(await fs.readFile(file, "utf8"));
 const backups = async (dir, name) => (await fs.readdir(dir)).filter((file) => file.startsWith(`${name}.`) && file.endsWith(".bak")).sort();
 
-test("npm source on Windows starts npx through cmd /c for every client", async () => {
+test("npm source on Windows runs npx directly for clients that resolve npx.cmd", async () => {
   const box = await sandbox();
-  await init(box, ["--client=cursor,claude-code,opencode,kiro,codex"], { platform: "win32" });
+  const output = await init(box, ["--client=cursor,claude-code,opencode,kiro,codex,claude-desktop"], {
+    platform: "win32",
+    env: { CODEX_HOME: path.join(box.home, ".codex"), APPDATA: path.join(box.home, "AppData", "Roaming") }
+  });
 
   const cursor = (await readJson(path.join(box.workspace, ".cursor", "mcp.json"))).mcpServers.uvcs;
-  assert.equal(cursor.command, "cmd");
-  assert.deepEqual(cursor.args.slice(0, 3), ["/c", "npx", "-y"]);
-  assert.match(cursor.args[3], NPM_SPEC);
-  assert.equal((await readJson(path.join(box.workspace, ".mcp.json"))).mcpServers.uvcs.command, "cmd");
-  assert.equal((await readJson(path.join(box.workspace, ".kiro", "settings", "mcp.json"))).mcpServers.uvcs.command, "cmd");
-  assert.deepEqual((await readJson(path.join(box.workspace, "opencode.json"))).mcp.uvcs.command.slice(0, 4), ["cmd", "/c", "npx", "-y"]);
+  assert.equal(cursor.command, "npx");
+  assert.equal(cursor.args[0], "-y");
+  assert.match(cursor.args[1], NPM_SPEC);
+  assert.equal((await readJson(path.join(box.workspace, ".mcp.json"))).mcpServers.uvcs.command, "npx");
+  assert.equal((await readJson(path.join(box.workspace, ".kiro", "settings", "mcp.json"))).mcpServers.uvcs.command, "npx");
+  assert.deepEqual((await readJson(path.join(box.workspace, "opencode.json"))).mcp.uvcs.command.slice(0, 2), ["npx", "-y"]);
   const codex = await fs.readFile(path.join(box.home, ".codex", "config.toml"), "utf8");
-  assert.match(codex, /command = "cmd"\nargs = \["\/c", "npx", "-y", "@proanima\/uvcs-mcp@/);
+  assert.match(codex, /command = "npx"\nargs = \["-y", "@proanima\/uvcs-mcp@/);
   assert.match(codex, /startup_timeout_sec = 60/);
+  assert.match(output, / -- npx -y @proanima\/uvcs-mcp@/);
+  assert.doesNotMatch(output, /cmd \/c/);
+});
+
+test("npm source on Windows keeps cmd /c for clients not confirmed to resolve npx.cmd", async () => {
+  const box = await sandbox();
+  await init(box, ["--client=antigravity,windsurf"], { platform: "win32" });
+
+  const antigravity = (await readJson(path.join(box.workspace, ".agents", "mcp_config.json"))).mcpServers.uvcs;
+  assert.equal(antigravity.command, "cmd");
+  assert.deepEqual(antigravity.args.slice(0, 3), ["/c", "npx", "-y"]);
+  assert.match(antigravity.args[3], NPM_SPEC);
+  const windsurf = (await readJson(path.join(box.home, ".codeium", "windsurf", "mcp_config.json"))).mcpServers.uvcs;
+  assert.equal(windsurf.command, "cmd");
+});
+
+test("local install source is never wrapped in cmd /c", async () => {
+  const box = await sandbox();
+  await init(box, ["--client=antigravity", "--install-source=local"], { platform: "win32" });
+
+  const entry = (await readJson(path.join(box.workspace, ".agents", "mcp_config.json"))).mcpServers.uvcs;
+  assert.notEqual(entry.command, "cmd");
+  assert.match(entry.args[0], /cli\.js$/);
 });
 
 test("npm source on other platforms runs npx directly", async () => {
@@ -67,15 +93,18 @@ test("npm source on other platforms runs npx directly", async () => {
   assert.match(cursor.args[1], NPM_SPEC);
 });
 
-test("fleet entries use the same Windows launcher and carry the detected cm path", async () => {
+test("fleet entries use the same per-client Windows launcher and carry the detected cm path", async () => {
   const box = await sandbox();
   const manifest = path.join(box.root, "workspaces.json");
   await fs.writeFile(manifest, JSON.stringify({ version: 1, workspaces: [{ name: "game", path: "./workspace" }] }), "utf8");
   const cm = path.join(box.root, "bin", "cm.exe");
 
-  await init(box, ["--client=cursor-global", `--manifest=${manifest}`, `--cm=${cm}`], { platform: "win32" });
+  await init(box, ["--client=cursor-global,antigravity-global", `--manifest=${manifest}`, `--cm=${cm}`], { platform: "win32" });
   const entry = (await readJson(path.join(box.home, ".cursor", "mcp.json"))).mcpServers.uvcs;
-  assert.equal(entry.command, "cmd");
+  assert.equal(entry.command, "npx");
+  const antigravity = (await readJson(path.join(box.home, ".gemini", "config", "mcp_config.json"))).mcpServers.uvcs;
+  assert.equal(antigravity.command, "cmd");
+  assert.equal(antigravity.env.UVCS_FLEET_MANIFEST, manifest);
   assert.equal(entry.env.UVCS_FLEET_MANIFEST, manifest);
   assert.equal(entry.env.UVCS_CM_PATH, cm);
 });
