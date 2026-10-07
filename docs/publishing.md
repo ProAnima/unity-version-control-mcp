@@ -25,7 +25,7 @@ npm run smoke:pack
 
 The project intentionally does not require a real Plastic SCM / Unity Version Control server in CI. Real-world compatibility is tracked through compatibility reports and maintainer-run validation, while `smoke:fake` and `smoke:fleet` cover the MCP transport and tool flow with a stateful fake `cm` and no credentials.
 
-CI runs the gate (without the full `npm audit`) on Ubuntu, Windows, and macOS with Node.js 22 and 24.
+CI runs the gate (without the full `npm audit`) on Ubuntu, Windows, and macOS with Node.js 22, 24, and 26.
 
 ## Release procedure
 

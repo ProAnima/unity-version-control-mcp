@@ -10,7 +10,7 @@ Current release: `1.3.0`. Supported `cm` clients: **10.0.16.6656 and newer**, in
 
 ## Requirements
 
-- Node.js 22 or newer (tested on 22 and 24);
+- Node.js 22 or newer (tested on 22, 24, and 26);
 - an existing Plastic SCM / Unity Version Control workspace;
 - the `cm` CLI. `init` finds it on `PATH` or in the standard install folders and writes its absolute path; otherwise pass `--cm=<path>`;
 - a logged-in `cm` client with access to the workspace server.
@@ -108,23 +108,6 @@ Replace `cursor` with your client, or list several separated by commas. If `cm` 
 
 ## Manual MCP Block
 
-Windows:
-
-```json
-{
-  "command": "cmd",
-  "args": ["/c", "npx", "-y", "@proanima/uvcs-mcp@1.3.0"],
-  "env": {
-    "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
-    "UVCS_MCP_MODE": "readonly"
-  }
-}
-```
-
-On Windows `npx` is a `.cmd` shim, which clients that start servers without a shell (for example Claude Code on native Windows and Codex) cannot launch directly. Starting it through `cmd /c` works in every client.
-
-macOS and Linux:
-
 ```json
 {
   "command": "npx",
@@ -135,6 +118,8 @@ macOS and Linux:
   }
 }
 ```
+
+On native Windows `npx` is the `npx.cmd` shim. Claude Code, Claude Desktop, Cursor, Codex 0.59+, Kiro, and OpenCode resolve it themselves. For Antigravity and Windsurf / Devin Desktop, or if a client reports `spawn npx ENOENT`, use `"command": "cmd"` with `"args": ["/c", "npx", "-y", "@proanima/uvcs-mcp@1.3.0"]`. See [Clients](docs/clients.md#launch-command-on-windows).
 
 Every environment variable is described in [Configuration](docs/configuration.md).
 

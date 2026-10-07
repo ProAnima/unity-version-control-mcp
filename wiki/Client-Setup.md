@@ -20,7 +20,7 @@ npx -y @proanima/uvcs-mcp@1.3.0 init --client=cursor,codex --workspace="D:/Repos
 
 Project files go into the workspace folder unless `--project-dir=<folder>` is passed. Existing files are backed up as `<file>.<YYYYMMDDHHmmss>.bak`. If any target config is malformed, nothing is written; `--skip-invalid` skips that client and prints the entry to add by hand.
 
-On Windows the generated command is `cmd /c npx -y @proanima/uvcs-mcp@1.3.0`, because clients that start servers without a shell cannot launch the `npx.cmd` shim directly.
+On Windows the generated command is plain `npx -y @proanima/uvcs-mcp@1.3.0` for Claude Code, Claude Desktop, Cursor, Codex, Kiro, and OpenCode, which resolve the `npx.cmd` shim themselves. Antigravity and Windsurf / Devin Desktop get `cmd /c npx -y @proanima/uvcs-mcp@1.3.0`. See [Clients](https://github.com/ProAnima/unity-version-control-mcp/blob/main/docs/clients.md#launch-command-on-windows).
 
 `init` writes the absolute `cm` path as `UVCS_CM_PATH`. If `cm` is not found, pass:
 

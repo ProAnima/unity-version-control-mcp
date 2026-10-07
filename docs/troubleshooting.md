@@ -38,7 +38,7 @@ On Windows, the standard location is `C:\Program Files\PlasticSCM5\client\cm.exe
 
 ## The client cannot start the server on Windows
 
-On Windows `npx` is a `.cmd` shim. Clients that start MCP servers without a shell, such as Claude Code on native Windows and Codex, cannot launch it, and the server never appears. `init` therefore writes:
+On Windows `npx` is the `npx.cmd` shim. Current versions of Claude Code, Claude Desktop, Cursor, Codex (0.59+), Kiro, and OpenCode resolve it, so `init` writes plain `npx` for them; Antigravity and Windsurf / Devin Desktop get the wrapped form below. If the server never appears or the client log shows `spawn npx ENOENT`, wrap the command:
 
 ```json
 {
@@ -47,7 +47,9 @@ On Windows `npx` is a `.cmd` shim. Clients that start MCP servers without a shel
 }
 ```
 
-If you wrote the entry by hand with `"command": "npx"`, switch to this form or re-run `init`. It works in every client and client version.
+When adding it with `claude mcp add ... -- cmd /c npx ...` from Git Bash, MSYS rewrites `/c` into a drive path; run the command from PowerShell or `cmd`, or set `MSYS_NO_PATHCONV=1`.
+
+If the client cannot find Node.js at all (nvm-windows, fnm, or Volta configured only in a shell profile), neither form helps: put the absolute path to `npx.cmd` in `command`, or set `PATH` in `env`.
 
 ## Workspace is not set or does not exist
 
@@ -147,7 +149,7 @@ The preview shows the target file and whether it would be created, merged, or is
 - restart the MCP client;
 - confirm the config file path for that client in [Clients](clients.md); project files are written into the workspace folder unless `--project-dir` was passed, so open that folder as the project;
 - verify that Node.js 22 or newer is available to the client process;
-- on Windows, check that the entry uses `cmd /c npx` (see above);
+- on Windows, if the client log shows `spawn npx ENOENT`, wrap the command in `cmd /c` (see above);
 - run `doctor` manually with the same workspace.
 
 ## `init` refuses to write

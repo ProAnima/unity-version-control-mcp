@@ -71,14 +71,14 @@ After the MCP client restarts, call `uvcs_setup_status` for every target. Confir
 
 ## Validation evidence for 1.3.0
 
-- 130 automated tests (`npm test`) at the time of writing, one of them POSIX-only and skipped on Windows; the count changes as tests are added.
+- 135 automated tests (`npm test`) at the time of writing, one of them POSIX-only and skipped on Windows; the count changes as tests are added.
 - ESLint and a syntax check of every JavaScript file in `src/` and `scripts/` (`npm run check`).
 - `npm audit` and `npm audit --omit=dev` report 0 vulnerabilities.
 - Release metadata check, including a check for stale `@proanima/uvcs-mcp@<version>` pins in README, docs, wiki, and templates.
 - Packed-tarball smoke test (`npm run smoke:pack`): the package is installed into a clean project and the installed server lists its tools.
 - Single-workspace fake MCP workflow covering branch, switch, add, checkin, label, merge, and final status, against a stateful fake `cm` that reports real pending changes and fails empty checkins.
 - Parallel two-workspace fleet smoke covering explicit routing, independent style rules, branch previews, state, locks, and mutations.
-- CI on Ubuntu, Windows, and macOS with Node.js 22 and 24.
+- CI on Ubuntu, Windows, and macOS with Node.js 22, 24, and 26.
 - Earlier live validation on Plastic SCM `10.0.16.6656` and Unity Version Control `11.x` workspaces; see [Compatibility](compatibility.md).
 
 ## Known boundaries

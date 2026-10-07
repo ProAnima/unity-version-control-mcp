@@ -37,7 +37,7 @@ Hardening release: closes an option-injection gap in path-scoped writes, makes `
 ### Setup
 
 - `init` writes project-scoped client files (`.mcp.json`, `.cursor/mcp.json`, `.kiro/settings/mcp.json`, `opencode.json`, `.agents/mcp_config.json`) into the workspace folder by default, or into `--project-dir`, and refuses to write them into the uvcs-mcp package folder.
-- On Windows the npm install source is launched as `cmd /c npx -y @proanima/uvcs-mcp@<version>`.
+- On Windows, clients confirmed to resolve the `npx.cmd` shim (Claude Code, Claude Desktop, Cursor, Codex 0.59+, Kiro, OpenCode) get plain `npx`; Antigravity and Windsurf / Devin Desktop get `cmd /c npx`.
 - The absolute `cm` path is detected and written as `UVCS_CM_PATH`, so GUI clients that do not inherit the shell `PATH` (macOS) still find `cm`.
 - Every target config is validated before anything is written; malformed or JSONC configs abort the run (or are skipped with `--skip-invalid` and a manual snippet).
 - Backups are timestamped and never overwritten; unchanged files are not rewritten.
@@ -55,7 +55,7 @@ Hardening release: closes an option-injection gap in path-scoped writes, makes `
 - Fleet manifests reject duplicate workspace paths, and process-wide `UVCS_*` settings no longer leak into every fleet workspace (only `UVCS_CM_PATH`, `UVCS_CM_ARGS`, and `UVCS_CM_OUTPUT_ENCODING` are shared).
 - The npm package no longer ships the README header image (1.6 MB → under 100 kB).
 - `UVCS_LOCALE` was removed; it was never used.
-- CI covers Ubuntu, Windows, and macOS on Node.js 22 and 24. Release checks fail on any stale version pin in user-facing docs, and the publish workflow verifies that the tag matches the package version.
+- CI covers Ubuntu, Windows, and macOS on Node.js 22, 24, and 26. Release checks fail on any stale version pin in user-facing docs, and the publish workflow verifies that the tag matches the package version.
 
 ## 1.2.1 - 2026-07-24
 

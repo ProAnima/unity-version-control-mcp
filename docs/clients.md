@@ -21,16 +21,22 @@ Zed has no `init` client; use the template described below.
 
 ## Launch command on Windows
 
-With the npm install source on Windows, every client gets:
+On native Windows `npx` is the `npx.cmd` shim, which a process cannot be spawned from without resolving `.cmd` files. With the npm install source, `init` therefore writes a client-specific command:
 
-```json
-{
-  "command": "cmd",
-  "args": ["/c", "npx", "-y", "@proanima/uvcs-mcp@1.3.0"]
-}
-```
+| Client | Windows command | Why |
+|---|---|---|
+| Claude Code | `npx` | Spawns through the MCP SDK (`cross-spawn`), which resolves `npx.cmd`. Use a current version. |
+| Claude Desktop | `npx` | Resolves `.cmd` files on `PATH` and starts them through `cmd.exe`. |
+| Cursor, `cursor-global` | `npx` | Spawns through `cross-spawn`. |
+| Codex | `npx` | Resolves `.cmd` files through `PATHEXT` since Codex 0.59.0. |
+| Kiro, `kiro-global` | `npx` | Starts commands found on `PATH`, including `.cmd` files. |
+| OpenCode, `opencode-global` | `npx` | Spawns through the MCP SDK (`cross-spawn`). |
+| Antigravity, `antigravity-global` | `cmd /c npx` | Not confirmed to resolve `npx.cmd`. |
+| Windsurf / Devin Desktop | `cmd /c npx` | Not confirmed to resolve `npx.cmd`. |
 
-`npx` on Windows is a `.cmd` shim. Clients that start MCP servers without a shell, such as Claude Code on native Windows, Codex, and other Rust-based clients, cannot launch it directly. `cmd /c npx` works in every client and client version, so `init` uses it for all of them. On macOS and Linux the command is `npx` with `["-y", "@proanima/uvcs-mcp@1.3.0"]`. Use the same form when you write a config by hand or copy a template from `templates/mcp`; the templates use the unversioned package name, so pin the version.
+The plain form is `"command": "npx"` with `["-y", "@proanima/uvcs-mcp@1.3.0"]`; the wrapped form is `"command": "cmd"` with `["/c", "npx", "-y", "@proanima/uvcs-mcp@1.3.0"]`. macOS and Linux always use the plain form. If an older client version reports `spawn npx ENOENT`, switch its entry to the wrapped form. Neither form helps when the client cannot see Node.js on its `PATH` (for example with nvm-windows, fnm, or Volta set up only in a shell profile); then put the absolute path to `npx.cmd` in `command` or set `PATH` in `env`.
+
+Use the same forms when you write a config by hand or copy a template from `templates/mcp`; the templates use the unversioned package name, so pin the version.
 
 ## Tool approval
 
@@ -69,7 +75,7 @@ $XDG_CONFIG_HOME/Claude/claude_desktop_config.json (default ~/.config/Claude/cla
 `init` also prints an equivalent command for user scope, to use instead of the project file:
 
 ```bash
-claude mcp add --env UVCS_WORKSPACE=... --env UVCS_MCP_MODE=readonly ... --scope user --transport stdio uvcs -- cmd /c npx -y @proanima/uvcs-mcp@1.3.0
+claude mcp add --env UVCS_WORKSPACE=... --env UVCS_MCP_MODE=readonly ... --scope user --transport stdio uvcs -- npx -y @proanima/uvcs-mcp@1.3.0
 ```
 
 Copy the printed command rather than this shortened example; it contains every environment variable of the generated entry.
@@ -102,7 +108,7 @@ Global config `~/.codeium/windsurf/mcp_config.json`. Windsurf was renamed Devin 
 
 ## Zed
 
-Zed is not an `init` client. Copy the `context_servers.uvcs` entry from `templates/mcp/zed.json` into Zed's settings. It uses the flat `command`, `args`, and `env` format. Pin the version, and on Windows use the `cmd /c npx` form shown above.
+Zed is not an `init` client. Copy the `context_servers.uvcs` entry from `templates/mcp/zed.json` into Zed's settings. It uses the flat `command`, `args`, and `env` format. Pin the version. On Windows, if Zed cannot start the server, use the wrapped `cmd /c npx` form shown above.
 
 ## Other clients
 

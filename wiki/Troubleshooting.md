@@ -12,7 +12,7 @@ Common fixes:
 
 - set `UVCS_WORKSPACE` to a real source-control workspace (`WORKSPACE_NOT_FOUND` means the folder does not exist);
 - pass `--cm=/path/to/cm` if `cm` is not found; GUI clients on macOS do not inherit the shell `PATH`, so keep the absolute `UVCS_CM_PATH` that `init` writes;
-- on Windows, start the npm package as `cmd /c npx -y @proanima/uvcs-mcp@1.3.0`; clients that spawn without a shell cannot launch `npx` directly;
+- on Windows, if the client log shows `spawn npx ENOENT`, start the npm package as `cmd /c npx -y @proanima/uvcs-mcp@1.3.0`;
 - if `init` writes nothing, fix the malformed client config it names or re-run with `--skip-invalid`;
 - log in with the official Plastic SCM / Unity Version Control client; `cm` runs without stdin, so login prompts fail instead of waiting;
 - restart the MCP client after config changes;

@@ -54,7 +54,7 @@ User-scoped clients (`cursor-global`, `codex`, `claude-desktop`, `kiro-global`, 
 
 ## Generated launch command
 
-With the npm install source on Windows:
+With the npm install source, most clients get plain `npx` on every platform. On native Windows, Antigravity and Windsurf / Devin Desktop are not confirmed to resolve the `npx.cmd` shim themselves, so their entries are wrapped:
 
 ```json
 {
@@ -63,9 +63,9 @@ With the npm install source on Windows:
 }
 ```
 
-On Windows `npx` is a `.cmd` shim. Clients that start MCP servers without a shell, such as Claude Code on native Windows, Codex, and other Rust-based clients, cannot launch it directly; `cmd /c npx` works in every client and client version.
+The per-client table is in [Clients](clients.md#launch-command-on-windows).
 
-On macOS and Linux:
+Plain form, used by all other clients and on macOS and Linux:
 
 ```json
 {
