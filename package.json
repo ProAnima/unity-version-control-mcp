@@ -1,6 +1,6 @@
 {
   "name": "@proanima/uvcs-mcp",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Safe MCP server for Plastic SCM and Unity Version Control (cm 10.0.16.6656+, UVCS 11.x) source-control workspaces.",
   "author": "Ian Panaev, ProAnimaStudio <proanimastudio@gmail.com>",
   "type": "module",
@@ -19,7 +19,6 @@
   "files": [
     "src",
     "scripts",
-    "assets/uvcs-mcp-header.png",
     "templates",
     "docs",
     "wiki",
@@ -31,7 +30,7 @@
     "SUPPORT.md"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "start": "node src/cli.js",
@@ -48,7 +47,8 @@
     "lint": "eslint .",
     "audit:prod": "npm audit --omit=dev",
     "release:check": "node scripts/release-check.js",
-    "check": "node --check src/cli.js && node --check src/doctor-cli.js && node --check src/server.js && node --check src/server/tool-result.js && node --check src/server/write-lock.js && node --check src/backend/cm.js && node --check src/backend/commands.js && node --check src/backend/errors.js && node --check src/backend/machine-readable.js && node --check src/backend/process-runner.js && node --check src/cli/init.js && node --check src/cli/doctor.js && node --check src/platform/paths.js && node --check src/services/audit.js && node --check src/services/doctor.js && node --check src/services/policy-report.js && node --check src/services/unity-meta.js && node --check src/services/style.js && node --check src/services/safety.js && node --check src/services/analytics.js && node --check src/tools/index.js && node --check src/tools/fleet.js && node --check src/policy/policy.js && node --check src/config/env.js && node --check src/config/fleet.js && node --check scripts/fake-cm.js && node --check scripts/mcp-smoke-fake.js && node --check scripts/mcp-smoke-fleet.js && node --check scripts/mcp-smoke-plastic.js && node --check scripts/release-check.js"
+    "check": "node scripts/syntax-check.js",
+    "smoke:pack": "node scripts/pack-smoke.js"
   },
   "keywords": [
     "mcp",
@@ -72,15 +72,11 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.29.0",
-    "zod": "4.4.3"
-  },
-  "overrides": {
-    "@hono/node-server": "2.0.11",
-    "fast-uri": "3.1.4"
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "eslint": "^10.7.0"
+    "eslint": "^10.12.0"
   }
 }
