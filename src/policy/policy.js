@@ -9,6 +9,12 @@ export function assertWorkspaceAllowed(config) {
   if (!config.workspace) {
     throw new UvcsError("UVCS_WORKSPACE is required", { code: "WORKSPACE_REQUIRED" });
   }
+  if (!isDirectory(config.workspace)) {
+    throw new UvcsError(`Workspace directory does not exist: ${config.workspace}`, {
+      code: "WORKSPACE_NOT_FOUND",
+      details: { workspace: config.workspace }
+    });
+  }
 
   if (config.allowedWorkspaces.length === 0) return;
 
@@ -16,6 +22,7 @@ export function assertWorkspaceAllowed(config) {
   const allowed = config.allowedWorkspaces.map(normalizePath);
   if (!allowed.includes(current)) {
     throw new PolicyError(`Workspace is not allowed: ${config.workspace}`, {
+      code: "WORKSPACE_NOT_ALLOWED",
       workspace: config.workspace,
       allowedWorkspaces: config.allowedWorkspaces
     });
@@ -39,13 +46,16 @@ export function assertRepoAllowed(config, workspaceInfo = {}) {
 
 export function assertStandardMode(config) {
   if (config.mode !== "standard") {
-    throw new PolicyError("This tool requires UVCS_MCP_MODE=standard");
+    throw new PolicyError("This tool requires UVCS_MCP_MODE=standard", { code: "STANDARD_MODE_REQUIRED" });
   }
 }
 
 export function assertRelativeWorkspacePath(config, filePath) {
   if (!filePath || typeof filePath !== "string") {
-    throw new PolicyError("filePath is required");
+    throw new PolicyError("filePath is required", { code: "INVALID_PATH" });
+  }
+  if (/[\0\r\n]/.test(filePath)) {
+    throw new PolicyError("filePath cannot contain control characters", { code: "INVALID_PATH", filePath });
   }
 
   const resolved = path.resolve(config.workspace, filePath);
@@ -53,14 +63,23 @@ export function assertRelativeWorkspacePath(config, filePath) {
   const canonicalWorkspace = canonicalPath(workspace);
   const canonicalResolved = canonicalPathWithExistingAncestor(resolved);
   const relative = path.relative(canonicalWorkspace, canonicalResolved);
-  if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw new PolicyError("filePath must stay inside UVCS_WORKSPACE", { filePath });
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new PolicyError("filePath must stay inside UVCS_WORKSPACE", { code: "PATH_OUTSIDE_WORKSPACE", filePath });
+  }
+  // cm parses a leading dash as an option (for example `undo -r`), so such a
+  // relative path could widen the command beyond the requested item.
+  if (relative.startsWith("-")) {
+    throw new PolicyError("filePath cannot start with '-'; it would be parsed as a cm option", {
+      code: "INVALID_PATH",
+      filePath
+    });
   }
 
   return relative;
 }
 
 export function createConfirmToken({ action, payload, ttlSec, context }) {
+  pruneExpiredTokens();
   const token = crypto.randomBytes(18).toString("base64url");
   const expiresAt = Date.now() + ttlSec * 1000;
   pendingConfirms.set(token, { action, payload, expiresAt, context });
@@ -70,17 +89,17 @@ export function createConfirmToken({ action, payload, ttlSec, context }) {
 export function consumeConfirmToken({ token, action, context }) {
   const record = pendingConfirms.get(token);
   if (!record) {
-    throw new PolicyError("Unknown or already used confirm token");
+    throw new PolicyError("Unknown or already used confirm token", { code: "CONFIRM_TOKEN_INVALID" });
   }
 
   pendingConfirms.delete(token);
 
   if (record.expiresAt < Date.now()) {
-    throw new PolicyError("Confirm token has expired");
+    throw new PolicyError("Confirm token has expired", { code: "CONFIRM_TOKEN_EXPIRED" });
   }
 
   if (record.action !== action) {
-    throw new PolicyError(`Confirm token is for ${record.action}, not ${action}`);
+    throw new PolicyError(`Confirm token is for ${record.action}, not ${action}`, { code: "CONFIRM_TOKEN_ACTION_MISMATCH" });
   }
   if (record.context !== context) {
     throw new PolicyError("Confirm token belongs to another workspace", {
@@ -89,6 +108,24 @@ export function consumeConfirmToken({ token, action, context }) {
   }
 
   return record.payload;
+}
+
+// Expired tokens stay known for a while so a late confirm still gets
+// CONFIRM_TOKEN_EXPIRED rather than CONFIRM_TOKEN_INVALID.
+const EXPIRED_TOKEN_RETENTION_MS = 10 * 60_000;
+
+function pruneExpiredTokens(now = Date.now()) {
+  for (const [token, record] of pendingConfirms) {
+    if (record.expiresAt + EXPIRED_TOKEN_RETENTION_MS < now) pendingConfirms.delete(token);
+  }
+}
+
+function isDirectory(directory) {
+  try {
+    return fs.statSync(directory).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 function normalizePath(input) {

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
 const FIELD_SEPARATOR = "\u001f";
+const IDENTITY = "fake-repo@fake-server:8087";
 const statePath = path.join(process.cwd(), ".plastic", "fake-cm-state.json");
 const args = process.argv.slice(2);
 
@@ -27,10 +29,32 @@ function main() {
   if (command === "status") {
     const state = readState();
     if (args.includes("--machinereadable")) {
-      write(`STATUS${FIELD_SEPARATOR}PATH${FIELD_SEPARATOR}REVISIONID\n`);
+      const rows = pendingRows(state).map(({ status, item }) => [
+        status,
+        path.join(process.cwd(), item),
+        "False",
+        "NO_MERGES"
+      ].join(FIELD_SEPARATOR));
+      write([`STATUS${FIELD_SEPARATOR}${state.changeset}${FIELD_SEPARATOR}fake-repo${FIELD_SEPARATOR}fake-server:8087`, ...rows, ""].join("\n"));
       return;
     }
-    write(`cs:${state.changeset}@${state.branch}\n`);
+    // Same header shapes as real cm: branch-loaded or changeset-loaded workspace.
+    write(state.loaded === "changeset"
+      ? `cs:${state.changeset}@${IDENTITY} (head)\n`
+      : `${state.branch}@${IDENTITY} (cs:${state.changeset} - head)\n`);
+    return;
+  }
+
+  if (command === "wi") {
+    const state = readState();
+    write(state.loaded === "changeset"
+      ? `CS ${state.changeset} ${IDENTITY}\n`
+      : `BR ${state.branch} ${IDENTITY}\n`);
+    return;
+  }
+
+  if (command === "diff") {
+    write(`--- ${args[1]}\n+++ ${args[1]}\n@@ fake diff @@\n`);
     return;
   }
 
@@ -74,25 +98,45 @@ function main() {
   if (command === "switch") {
     const state = readState();
     const target = args[1];
-    if (target?.startsWith("/")) state.branch = target;
+    if (target?.startsWith("/")) {
+      state.branch = target;
+      state.loaded = "branch";
+    }
     const changeset = String(target ?? "").match(/^cs:(\d+)$/);
-    if (changeset) state.changeset = Number(changeset[1]);
+    if (changeset) {
+      state.changeset = Number(changeset[1]);
+      state.loaded = "changeset";
+    }
     writeState(state);
     write(`Switched to ${target}\n`);
     return;
   }
 
   if (command === "add") {
+    const state = readState();
+    for (const item of listFiles(args.at(-1))) {
+      if (!(item in state.controlled) && !state.added.includes(item)) state.added.push(item);
+    }
+    writeState(state);
     write(`Added ${args.at(-1)}\n`);
     return;
   }
 
   if (command === "undo") {
+    const state = readState();
+    const target = normalizeItem(args[1]);
+    const matches = (item) => item === target || item.startsWith(`${target}/`);
+    state.added = state.added.filter((item) => !matches(item));
+    state.merged = state.merged.filter((item) => !matches(item));
+    writeState(state);
     write(`Undid pending changes for ${args[1]}\n`);
     return;
   }
 
   if (command === "merge") {
+    const state = readState();
+    state.merged.push(`merge-from${args[1].replace(/[^A-Za-z0-9._-]+/g, "-")}`);
+    writeState(state);
     write(`Merged ${args[1]}\n`);
     return;
   }
@@ -104,6 +148,16 @@ function main() {
 
   if (command === "checkin") {
     const state = readState();
+    const rows = pendingRows(state);
+    if (rows.length === 0) {
+      fail("There are no changes to check in.");
+      return;
+    }
+    for (const { item } of rows) {
+      if (!state.merged.includes(item)) state.controlled[item] = hashFile(item);
+    }
+    state.added = [];
+    state.merged = [];
     state.changeset += 1;
     writeState(state);
     write(`Created changeset cs:${state.changeset}\n`);
@@ -113,15 +167,54 @@ function main() {
   fail(`Unsupported fake cm command: ${args.join(" ")}`);
 }
 
-function readState() {
+// Pending rows mimic `cm status --machinereadable`: added items, controlled
+// files whose content changed since the last checkin, and merge results.
+function pendingRows(state) {
+  const changed = Object.entries(state.controlled)
+    .filter(([item, hash]) => hashFile(item) !== hash)
+    .map(([item]) => ({ status: "CH", item }));
+  return [
+    ...state.added.map((item) => ({ status: "AD", item })),
+    ...changed,
+    ...state.merged.map((item) => ({ status: "CH", item }))
+  ];
+}
+
+function listFiles(target) {
+  const item = normalizeItem(target);
+  const absolute = path.join(process.cwd(), item);
+  if (!fs.existsSync(absolute)) return [];
+  if (!fs.statSync(absolute).isDirectory()) return [item];
+  return fs.readdirSync(absolute).flatMap((name) => listFiles(`${item}/${name}`));
+}
+
+function normalizeItem(target) {
+  return path.relative(process.cwd(), path.resolve(process.cwd(), String(target ?? ""))).replaceAll(path.sep, "/");
+}
+
+function hashFile(item) {
   try {
-    return JSON.parse(fs.readFileSync(statePath, "utf8"));
+    return crypto.createHash("sha256").update(fs.readFileSync(path.join(process.cwd(), item))).digest("hex");
   } catch {
-    return {
-      branch: "/main",
-      changeset: 100
-    };
+    return "missing";
   }
+}
+
+function readState() {
+  let state = {};
+  try {
+    state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+  } catch {
+    // A fresh fake workspace starts on /main at cs:100.
+  }
+  return {
+    branch: "/main",
+    changeset: 100,
+    controlled: {},
+    added: [],
+    merged: [],
+    ...state
+  };
 }
 
 function writeState(state) {

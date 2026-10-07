@@ -1,19 +1,32 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-export async function unityMetaDiagnostics(workspace) {
-  const roots = ["Assets", "Packages"];
+const MAX_FINDINGS = 500;
+const SKIPPED_DIRECTORIES = new Set(["Library", "Temp", "Obj", "Logs", "Build", "Builds", "node_modules"]);
+
+export async function unityMetaDiagnostics(workspace, { maxFindings = MAX_FINDINGS } = {}) {
   const findings = [];
 
-  for (const root of roots) {
-    const absoluteRoot = path.join(workspace, root);
-    if (!(await exists(absoluteRoot))) continue;
-    await scanUnityTree(absoluteRoot, findings, workspace);
+  const assets = path.join(workspace, "Assets");
+  if (await isDirectory(assets)) {
+    await scanUnityTree(assets, findings, workspace);
+  }
+
+  // Packages/ itself holds manifest.json and packages-lock.json without .meta
+  // files; only the contents of embedded package folders are imported assets.
+  const packages = path.join(workspace, "Packages");
+  if (await isDirectory(packages)) {
+    for (const entry of await fs.readdir(packages, { withFileTypes: true })) {
+      if (entry.isDirectory() && !isIgnoredByUnity(entry.name)) {
+        await scanUnityTree(path.join(packages, entry.name), findings, workspace);
+      }
+    }
   }
 
   return {
     workspace,
-    findings,
+    findings: findings.slice(0, maxFindings),
+    truncated: findings.length > maxFindings,
     summary: {
       missingMeta: findings.filter((item) => item.type === "missing-meta").length,
       orphanMeta: findings.filter((item) => item.type === "orphan-meta").length
@@ -22,7 +35,8 @@ export async function unityMetaDiagnostics(workspace) {
 }
 
 async function scanUnityTree(directory, findings, workspace) {
-  const entries = await fs.readdir(directory, { withFileTypes: true });
+  const entries = (await fs.readdir(directory, { withFileTypes: true }))
+    .filter((entry) => !isIgnoredByUnity(entry.name));
   const names = new Set(entries.map((entry) => entry.name));
 
   for (const entry of entries) {
@@ -30,7 +44,7 @@ async function scanUnityTree(directory, findings, workspace) {
     const relative = path.relative(workspace, absolute);
 
     if (entry.isDirectory()) {
-      if (shouldSkipUnityDir(entry.name)) continue;
+      if (SKIPPED_DIRECTORIES.has(entry.name)) continue;
       if (!names.has(`${entry.name}.meta`)) {
         findings.push({
           type: "missing-meta",
@@ -66,18 +80,22 @@ async function scanUnityTree(directory, findings, workspace) {
   }
 }
 
-function shouldSkipUnityDir(name) {
-  return new Set(["Library", "Temp", "Obj", "Logs", "Build", "Builds", ".git", ".plastic", "node_modules"]).has(name);
+// Unity skips hidden items, names ending with "~", "cvs" folders, and *.tmp
+// files during import, so they never get .meta files.
+function isIgnoredByUnity(name) {
+  return name.startsWith(".")
+    || name.endsWith("~")
+    || name.toLowerCase() === "cvs"
+    || name.toLowerCase().endsWith(".tmp");
 }
 
 function normalizeSlash(value) {
   return value.replaceAll(path.sep, "/");
 }
 
-async function exists(filePath) {
+async function isDirectory(filePath) {
   try {
-    await fs.access(filePath);
-    return true;
+    return (await fs.stat(filePath)).isDirectory();
   } catch {
     return false;
   }

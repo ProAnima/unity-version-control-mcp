@@ -36,6 +36,12 @@ export const CM_COMMANDS = {
     requireWorkspace: true,
     mutation: false
   },
+  // Reads local workspace metadata only, so it works while the server is unreachable.
+  workspaceSelector: {
+    args: ["wi", "--machinereadable"],
+    requireWorkspace: true,
+    mutation: false
+  },
   statusMachine: {
     args: ["status", ...MACHINE_READABLE_FLAGS],
     requireWorkspace: true,

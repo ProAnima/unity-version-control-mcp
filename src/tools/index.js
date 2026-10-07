@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import {
   assertRelativeWorkspacePath,
   assertRepoAllowed,
@@ -21,7 +20,11 @@ import {
   styleSetupGuide,
   writeStyleConfig
 } from "../services/style.js";
-import { UvcsError } from "../backend/errors.js";
+import { summarizePendingChanges } from "../services/pending.js";
+import { UvcsError, truncateText } from "../backend/errors.js";
+
+const MAX_DIFF_CHARS = 200_000;
+const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true };
 
 export function createTools({ config, backend }) {
   const definitions = [
@@ -83,6 +86,7 @@ export function createTools({ config, backend }) {
       backend,
       name: "uvcs_style_init",
       description: "Create .uvcs-mcp/style.json with branch naming, checkin message, and release conventions. Requires prepare/confirm.",
+      destructive: false,
       properties: {
         preset: {
           type: "string",
@@ -199,7 +203,7 @@ export function createTools({ config, backend }) {
     ),
     tool(
       "uvcs_diff_file",
-      "Return cm diff output for a file inside the workspace.",
+      `Return cm diff output for a file inside the workspace. Output longer than ${MAX_DIFF_CHARS} characters is truncated.`,
       {
         filePath: {
           type: "string",
@@ -209,7 +213,13 @@ export function createTools({ config, backend }) {
       async ({ filePath }) => {
         await assertWorkspacePolicy(config, backend);
         const safePath = assertRelativeWorkspacePath(config, filePath);
-        return await backend.diffFile(safePath);
+        const result = await backend.diffFile(safePath);
+        const stdout = String(result.stdout ?? "");
+        return {
+          ...result,
+          stdout: truncateText(stdout, MAX_DIFF_CHARS),
+          truncated: stdout.length > MAX_DIFF_CHARS
+        };
       },
       ["filePath"]
     ),
@@ -217,7 +227,8 @@ export function createTools({ config, backend }) {
       config,
       backend,
       name: "uvcs_update_workspace",
-      description: "Update the workspace. Requires prepare/confirm.",
+      description: "Update the workspace to the latest changeset of its branch. Local edits to files changed upstream can produce merge conflicts. Requires prepare/confirm.",
+      destructive: true,
       properties: {},
       required: [],
       action: "update_workspace",
@@ -226,7 +237,14 @@ export function createTools({ config, backend }) {
         await assertWorkspacePolicy(config, backend);
         assertStandardMode(config);
         const branchInfo = await backend.branchInfo();
-        return { branchLine: branchInfo.branchLine ?? "" };
+        const pending = summarizePendingChanges((await backend.pendingChanges()).stdout);
+        return {
+          branchLine: branchInfo.branchLine ?? "",
+          pendingChangesCount: pending.trackedCount,
+          ...(pending.trackedCount > 0
+            ? { warning: `The workspace has ${pending.trackedCount} pending changes. Updating over them can create conflicts that must be resolved in the UVCS client. Prefer checking them in first (or shelving them in the UVCS client).` }
+            : {})
+        };
       },
       revalidate: async (payload) => {
         const branchInfo = await backend.branchInfo();
@@ -261,7 +279,9 @@ export function createTools({ config, backend }) {
           description: "Optional substring to match in changeset comments."
         },
         maxResults: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
+          maximum: 500,
           description: "Maximum changesets to return, from 1 to 500. Default: 100."
         }
       },
@@ -279,7 +299,9 @@ export function createTools({ config, backend }) {
           description: "Optional semicolon-separated branch prefixes to inspect, for example /main/tmp;/main/agent."
         },
         maxResults: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
+          maximum: 200,
           description: "Maximum branches to return, from 1 to 200. Default: 50."
         }
       },
@@ -301,7 +323,9 @@ export function createTools({ config, backend }) {
           description: "Optional branch to inspect. Defaults to the current workspace branch."
         },
         recentChangesets: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
+          maximum: 50,
           description: "Recent changesets to include, from 1 to 50. Default: 10."
         }
       },
@@ -318,7 +342,8 @@ export function createTools({ config, backend }) {
       config,
       backend,
       name: "uvcs_add",
-      description: "Add a path to Plastic SCM / UVCS version control recursively. Requires prepare/confirm.",
+      description: "Add a path to Plastic SCM / UVCS version control recursively. For Unity assets also add the matching .meta file. Requires prepare/confirm.",
+      destructive: false,
       properties: {
         itemPath: {
           type: "string",
@@ -341,6 +366,7 @@ export function createTools({ config, backend }) {
       backend,
       name: "uvcs_undo",
       description: "Irreversibly undo pending changes for one path inside the selected workspace. Workspace-root undo is forbidden. Requires prepare/confirm.",
+      destructive: true,
       properties: {
         itemPath: {
           type: "string",
@@ -367,14 +393,14 @@ export function createTools({ config, backend }) {
         return {
           itemPath: safePath,
           recursive,
-          statusFingerprint: fingerprintStatus(status.stdout),
+          statusFingerprint: summarizePendingChanges(status.stdout).fingerprint,
           warning: "UVCS undo is irreversible. Review pendingChanges before confirming.",
           pendingChanges: status.stdout
         };
       },
       revalidate: async (payload) => {
         const status = await backend.pendingChanges();
-        if (fingerprintStatus(status.stdout) !== payload.statusFingerprint) {
+        if (summarizePendingChanges(status.stdout).fingerprint !== payload.statusFingerprint) {
           throw workspaceChangedError("pending changes changed after undo preparation");
         }
       },
@@ -385,6 +411,7 @@ export function createTools({ config, backend }) {
       backend,
       name: "uvcs_branch_create",
       description: "Create a Plastic SCM / UVCS branch from a changeset or label. Requires prepare/confirm.",
+      destructive: false,
       properties: {
         branch: {
           type: "string",
@@ -428,6 +455,7 @@ export function createTools({ config, backend }) {
       backend,
       name: "uvcs_label_create",
       description: "Create a Plastic SCM / UVCS label on a changeset. Requires prepare/confirm.",
+      destructive: false,
       properties: {
         label: {
           type: "string",
@@ -459,7 +487,8 @@ export function createTools({ config, backend }) {
       config,
       backend,
       name: "uvcs_switch_workspace",
-      description: "Switch the workspace to a branch, changeset, or label. Requires prepare/confirm.",
+      description: "Switch the workspace to a branch, changeset, or label. Refused while tracked pending changes exist. Requires prepare/confirm.",
+      destructive: true,
       properties: {
         target: {
           type: "string",
@@ -474,18 +503,18 @@ export function createTools({ config, backend }) {
         assertStandardMode(config);
         assertSwitchTarget(target);
         const status = await backend.pendingChanges();
-        const changedFiles = countLikelyChangedFiles(status.stdout);
-        if (changedFiles > 0) {
+        const pending = summarizePendingChanges(status.stdout);
+        if (pending.trackedCount > 0) {
           throw new UvcsError("Refusing switch with pending changes", {
             code: "PENDING_CHANGES_BLOCK_SWITCH",
-            details: { pendingChanges: status.stdout }
+            details: { pendingChangesCount: pending.trackedCount, pendingChanges: status.stdout }
           });
         }
-        return { target, statusFingerprint: fingerprintStatus(status.stdout) };
+        return { target, statusFingerprint: pending.fingerprint };
       },
       revalidate: async (payload) => {
         const status = await backend.pendingChanges();
-        if (fingerprintStatus(status.stdout) !== payload.statusFingerprint) {
+        if (summarizePendingChanges(status.stdout).fingerprint !== payload.statusFingerprint) {
           throw workspaceChangedError("pending changes changed after switch preparation");
         }
       },
@@ -495,7 +524,8 @@ export function createTools({ config, backend }) {
       config,
       backend,
       name: "uvcs_merge",
-      description: "Merge a branch/changeset/label into the current workspace branch. Requires prepare/confirm.",
+      description: "Merge a branch/changeset/label into the current workspace branch. Refused while tracked pending changes exist; the merge result stays pending until a checkin. Requires prepare/confirm.",
+      destructive: true,
       properties: {
         source: {
           type: "string",
@@ -515,18 +545,18 @@ export function createTools({ config, backend }) {
         assertSwitchTarget(source);
         assertOptionalSingleLine(comment, "comment");
         const status = await backend.pendingChanges();
-        const changedFiles = countLikelyChangedFiles(status.stdout);
-        if (changedFiles > 0) {
+        const pending = summarizePendingChanges(status.stdout);
+        if (pending.trackedCount > 0) {
           throw new UvcsError("Refusing merge with pending changes", {
             code: "PENDING_CHANGES_BLOCK_MERGE",
-            details: { pendingChanges: status.stdout }
+            details: { pendingChangesCount: pending.trackedCount, pendingChanges: status.stdout }
           });
         }
-        return { source, comment, statusFingerprint: fingerprintStatus(status.stdout) };
+        return { source, comment, statusFingerprint: pending.fingerprint };
       },
       revalidate: async (payload) => {
         const status = await backend.pendingChanges();
-        if (fingerprintStatus(status.stdout) !== payload.statusFingerprint) {
+        if (summarizePendingChanges(status.stdout).fingerprint !== payload.statusFingerprint) {
           throw workspaceChangedError("pending changes changed after merge preparation");
         }
       },
@@ -534,7 +564,7 @@ export function createTools({ config, backend }) {
     }),
     tool(
       "uvcs_checkin_prepare",
-      "Prepare a checkin and return a short-lived confirmation token.",
+      "Prepare a checkin of ALL tracked pending changes in the workspace (private files are not included) and return a short-lived confirmation token. Review the returned pendingChanges with the user before confirming.",
       {
         message: {
           type: "string",
@@ -546,7 +576,13 @@ export function createTools({ config, backend }) {
         assertStandardMode(config);
         assertCheckinMessage(message);
         const status = await backend.pendingChanges();
-        const changedFiles = countLikelyChangedFiles(status.stdout);
+        const pending = summarizePendingChanges(status.stdout);
+        const changedFiles = pending.trackedCount;
+        if (changedFiles === 0) {
+          throw new UvcsError("Nothing to check in: the workspace has no tracked pending changes", {
+            code: "NOTHING_TO_CHECKIN"
+          });
+        }
         if (changedFiles > config.checkinMaxFiles) {
           throw new UvcsError(`Refusing checkin prepare: ${changedFiles} files exceed UVCS_CHECKIN_MAX_FILES=${config.checkinMaxFiles}`, {
             code: "CHECKIN_TOO_LARGE",
@@ -560,7 +596,7 @@ export function createTools({ config, backend }) {
           action: "checkin",
           payload: {
             message,
-            statusFingerprint: fingerprintStatus(status.stdout)
+            statusFingerprint: pending.fingerprint
           },
           ttlSec: config.tokenTtlSec,
           context: config.workspace
@@ -570,6 +606,7 @@ export function createTools({ config, backend }) {
           confirmPhrase: "confirm uvcs checkin",
           token: confirm.token,
           expiresAt: new Date(confirm.expiresAt).toISOString(),
+          changedFiles,
           pendingChanges: status.stdout
         };
       },
@@ -577,7 +614,7 @@ export function createTools({ config, backend }) {
     ),
     tool(
       "uvcs_checkin_confirm",
-      "Confirm and run a prepared checkin.",
+      `Run a prepared checkin of all tracked pending changes. ${CONFIRM_GUIDANCE}`,
       {
         token: {
           type: "string",
@@ -596,8 +633,9 @@ export function createTools({ config, backend }) {
         }
         const payload = consumeConfirmToken({ token, action: "checkin", context: config.workspace });
         const status = await backend.pendingChanges();
-        const changedFiles = countLikelyChangedFiles(status.stdout);
-        if (fingerprintStatus(status.stdout) !== payload.statusFingerprint) {
+        const pending = summarizePendingChanges(status.stdout);
+        const changedFiles = pending.trackedCount;
+        if (pending.fingerprint !== payload.statusFingerprint) {
           throw workspaceChangedError("pending changes changed after checkin preparation");
         }
         if (changedFiles > config.checkinMaxFiles) {
@@ -608,7 +646,8 @@ export function createTools({ config, backend }) {
         }
         return await backend.checkin(payload.message);
       },
-      ["token", "confirmPhrase"]
+      ["token", "confirmPhrase"],
+      confirmAnnotations(false)
     )
   ];
 
@@ -624,7 +663,9 @@ export function createTools({ config, backend }) {
   };
 }
 
-function tool(name, description, properties, handler, required = []) {
+const CONFIRM_GUIDANCE = "Call only after the user has reviewed the prepared payload and explicitly approved this exact operation.";
+
+function tool(name, description, properties, handler, required = [], annotations = READ_ONLY) {
   return {
     name,
     description,
@@ -634,11 +675,16 @@ function tool(name, description, properties, handler, required = []) {
       required,
       additionalProperties: false
     },
+    annotations,
     handler
   };
 }
 
-function prepareConfirmTool({ config, backend, name, description, properties, required, action, confirmPhrase, prepare, revalidate, confirm }) {
+function confirmAnnotations(destructive) {
+  return { readOnlyHint: false, destructiveHint: destructive, idempotentHint: false };
+}
+
+function prepareConfirmTool({ config, backend, name, description, destructive, properties, required, action, confirmPhrase, prepare, revalidate, confirm }) {
   return [
     tool(
       `${name}_prepare`,
@@ -664,7 +710,7 @@ function prepareConfirmTool({ config, backend, name, description, properties, re
     ),
     tool(
       `${name}_confirm`,
-      `${description} Confirms and executes a prepared operation.`,
+      `${description} Confirms and executes a prepared operation. ${CONFIRM_GUIDANCE}`,
       {
         token: {
           type: "string",
@@ -685,7 +731,8 @@ function prepareConfirmTool({ config, backend, name, description, properties, re
         if (revalidate) await revalidate(payload);
         return await confirm(payload);
       },
-      ["token", "confirmPhrase"]
+      ["token", "confirmPhrase"],
+      confirmAnnotations(destructive)
     )
   ];
 }
@@ -694,22 +741,6 @@ async function assertWorkspacePolicy(config, backend) {
   assertWorkspaceAllowed(config);
   if (!config.allowedRepos || config.allowedRepos.length === 0) return;
   assertRepoAllowed(config, await backend.workspaceInfo());
-}
-
-function countLikelyChangedFiles(statusText) {
-  if (!statusText.trim()) return 0;
-  return statusText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .filter((line) => !line.startsWith("Total:"))
-    .filter((line) => !line.startsWith("STATUS\u001f"))
-    .filter((line) => !line.startsWith("STAGE\u001f"))
-    .length;
-}
-
-function fingerprintStatus(statusText) {
-  return crypto.createHash("sha256").update(String(statusText ?? ""), "utf8").digest("hex");
 }
 
 function workspaceChangedError(reason) {
@@ -737,10 +768,12 @@ function assertOptionalSingleLine(value, name) {
   }
 }
 
+// Names never start with "-" so cm cannot parse them as options.
 function assertBranchSpec(branch) {
-  const safeSegment = "[A-Za-z0-9._-]+(?: [A-Za-z0-9._-]+)*";
+  const safeSegment = "[A-Za-z0-9._][A-Za-z0-9._-]*(?: [A-Za-z0-9._-]+)*";
   const safeBranchPath = new RegExp(`^/?${safeSegment}(?:/${safeSegment})*$`);
-  if (typeof branch !== "string" || !safeBranchPath.test(branch)) {
+  const hasDotSegment = typeof branch === "string" && branch.split("/").some((segment) => segment === "." || segment === "..");
+  if (typeof branch !== "string" || !safeBranchPath.test(branch) || hasDotSegment) {
     throw new UvcsError("Branch must be a safe branch path such as /main, /main/task-name, or /release-version project-name", {
       code: "INVALID_BRANCH_SPEC",
       details: { branch }
@@ -749,8 +782,8 @@ function assertBranchSpec(branch) {
 }
 
 function assertLabelName(label) {
-  if (typeof label !== "string" || !/^[A-Za-z0-9._-]+$/.test(label)) {
-    throw new UvcsError("Label must contain only letters, numbers, dot, underscore, or dash", {
+  if (typeof label !== "string" || !/^[A-Za-z0-9._][A-Za-z0-9._-]*$/.test(label)) {
+    throw new UvcsError("Label must contain only letters, numbers, dot, underscore, or dash, and cannot start with a dash", {
       code: "INVALID_LABEL_NAME",
       details: { label }
     });
@@ -758,7 +791,7 @@ function assertLabelName(label) {
 }
 
 function assertLabelSpec(labelSpec) {
-  if (typeof labelSpec !== "string" || !/^lb:[A-Za-z0-9._-]+$/.test(labelSpec)) {
+  if (typeof labelSpec !== "string" || !/^lb:[A-Za-z0-9._][A-Za-z0-9._-]*$/.test(labelSpec)) {
     throw new UvcsError("Label spec must look like lb:LABEL_NAME", {
       code: "INVALID_LABEL_SPEC",
       details: { labelSpec }
@@ -779,6 +812,6 @@ function assertSwitchTarget(target) {
   if (typeof target !== "string") {
     throw new UvcsError("Target must be a string", { code: "INVALID_TARGET" });
   }
-  if (/^cs:\d+$/.test(target) || /^lb:[A-Za-z0-9._-]+$/.test(target)) return;
+  if (/^cs:\d+$/.test(target) || /^lb:[A-Za-z0-9._][A-Za-z0-9._-]*$/.test(target)) return;
   assertBranchSpec(target);
 }

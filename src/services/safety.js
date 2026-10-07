@@ -1,4 +1,5 @@
 import { UvcsError } from "../backend/errors.js";
+import { countTrackedChanges } from "./pending.js";
 
 const BRANCH_FORMAT = "{name}\u001f{date}\u001f{owner}\u001f{comment}";
 const RECENT_CHANGESET_FORMAT = "{changesetid}\u001f{branch}\u001f{date}\u001f{owner}\u001f{comment}";
@@ -34,10 +35,16 @@ export async function cleanupCandidates({ backend, patterns = DEFAULT_CLEANUP_PA
 
 export async function branchSafetyReport({ backend, branch, recentChangesets = 10 } = {}) {
   const branchInfo = await backend.branchInfo();
-  const currentBranch = parseBranchFromStatus(branchInfo.branchLine || branchInfo.stdout);
+  const currentBranch = branchInfo.branch ?? parseBranchFromStatus(branchInfo.branchLine || branchInfo.stdout);
   const targetBranch = branch ? normalizeBranch(branch) : currentBranch;
+  if (!targetBranch) {
+    throw new UvcsError("Cannot determine the current branch of this workspace; pass branch explicitly", {
+      code: "CURRENT_BRANCH_UNKNOWN",
+      details: { branchLine: branchInfo.branchLine }
+    });
+  }
   const pending = await backend.pendingChanges();
-  const pendingCount = countLikelyChangedFiles(pending.stdout);
+  const pendingCount = countTrackedChanges(pending.stdout);
   const recentLimit = clampMaxResults(recentChangesets, 1, 50);
   const query = buildRecentChangesetsQuery({ branch: targetBranch, limit: recentLimit });
   const recentResult = await backend.findChangesets({
@@ -136,22 +143,14 @@ function branchSafetyRecommendations({ currentBranch, targetBranch, pendingCount
   return recommendations;
 }
 
+// Real headers start with the branch (`/main@repo@server (cs:11 - head)`);
+// a changeset-loaded header (`cs:11@repo@server`) carries no branch at all.
 function parseBranchFromStatus(text) {
-  const match = String(text ?? "").match(/@((?:\/?[A-Za-z0-9._-]+)(?:\/[A-Za-z0-9._-]+)*)/);
-  if (match) return normalizeBranch(match[1]);
-  return "/main";
-}
-
-function countLikelyChangedFiles(statusText) {
-  if (!String(statusText ?? "").trim()) return 0;
-  return String(statusText)
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .filter((line) => !line.startsWith("Total:"))
-    .filter((line) => !line.startsWith("STATUS\u001f"))
-    .filter((line) => !line.startsWith("STAGE\u001f"))
-    .length;
+  const line = String(text ?? "").split(/\r?\n/).map((item) => item.trim()).find(Boolean) ?? "";
+  const branchFirst = line.match(/^(\/[^@]*)@/);
+  if (branchFirst) return branchFirst[1];
+  const changesetThenBranch = line.match(/^cs:\d+@(\/[^@\s]*)/);
+  return changesetThenBranch ? changesetThenBranch[1] : null;
 }
 
 function normalizePatterns(patterns) {

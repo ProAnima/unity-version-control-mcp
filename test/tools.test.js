@@ -5,7 +5,7 @@ import { createTools } from "../src/tools/index.js";
 test("branch create prepare allows safe release branch names with a project name", async () => {
   const tools = createTools({
     config: {
-      workspace: "D:/workspace",
+      workspace: process.cwd(),
       allowedWorkspaces: [],
       mode: "standard",
       tokenTtlSec: 60
@@ -25,7 +25,7 @@ test("branch create prepare allows safe release branch names with a project name
 test("branch create prepare still rejects unsafe branch names", async () => {
   const tools = createTools({
     config: {
-      workspace: "D:/workspace",
+      workspace: process.cwd(),
       allowedWorkspaces: [],
       mode: "standard",
       tokenTtlSec: 60

@@ -23,6 +23,8 @@ export async function loadFleetConfigs(manifestPath, baseEnv = process.env) {
   assertPlainObject(defaults, "Workspace manifest defaults");
   assertKnownKeys(defaults, SETTING_KEYS, "Workspace manifest defaults");
   const names = new Set();
+  const paths = new Set();
+  const processEnv = withoutWorkspaceSettings(baseEnv);
 
   const configs = await Promise.all(manifest.workspaces.map(async (entry) => {
     assertPlainObject(entry, "Workspace entry");
@@ -35,6 +37,9 @@ export async function loadFleetConfigs(manifestPath, baseEnv = process.env) {
     }
 
     const workspace = path.resolve(manifestDir, entry.path);
+    const pathKey = process.platform === "win32" ? workspace.toLowerCase() : workspace;
+    if (paths.has(pathKey)) throw new Error(`Duplicate workspace path in manifest: ${workspace}`);
+    paths.add(pathKey);
     const safety = entry.safety ?? defaults.safety ?? "readonly";
     const mode = entry.mode ?? defaults.mode ?? modeForSafety(safety);
     if (mode !== modeForSafety(safety)) {
@@ -45,15 +50,15 @@ export async function loadFleetConfigs(manifestPath, baseEnv = process.env) {
       allowedRepos = await detectWorkspaceRepos(
         workspace,
         entry.cmPath ?? defaults.cmPath,
-        baseEnv
+        processEnv
       );
     }
     if (safety === "guarded" && allowedRepos.length === 0) {
-      throw new Error(`Workspace ${name} uses guarded safety and requires allowedRepos`);
+      throw new Error(`Workspace ${name} uses guarded safety but its repository identity could not be detected at ${workspace}. Check that the path is a UVCS workspace and the server is reachable, or pin "allowedRepos": ["repo@server:port"] in the manifest.`);
     }
 
     const env = {
-      ...baseEnv,
+      ...processEnv,
       UVCS_WORKSPACE: workspace,
       UVCS_WORKSPACE_NAME: name,
       UVCS_SAFETY_PROFILE: safety,
@@ -73,6 +78,15 @@ export async function loadFleetConfigs(manifestPath, baseEnv = process.env) {
   }));
 
   return { manifestPath: absoluteManifest, configs };
+}
+
+// Per-workspace settings come only from the manifest. Process-wide UVCS_*
+// variables (allowlists, limits, audit paths) must not leak into every entry;
+// only cm invocation settings are shared.
+const SHARED_ENV_KEYS = new Set(["UVCS_CM_PATH", "UVCS_CM_ARGS", "UVCS_CM_OUTPUT_ENCODING"]);
+
+function withoutWorkspaceSettings(env) {
+  return Object.fromEntries(Object.entries(env).filter(([key]) => !key.startsWith("UVCS_") || SHARED_ENV_KEYS.has(key)));
 }
 
 function modeForSafety(safety) {

@@ -38,8 +38,24 @@ function hintForError(error) {
     case "WORKSPACE_REQUIRED":
       return "Set UVCS_WORKSPACE to a Plastic SCM / Unity Version Control source-control workspace path.";
     case "MUTATION_REQUIRES_STANDARD_MODE":
-    case "POLICY_DENIED":
-      return "Read-only mode is active. Set UVCS_MCP_MODE=standard only when write operations are intended.";
+    case "STANDARD_MODE_REQUIRED":
+      return "Read-only mode is active. Ask the user to enable writes (UVCS_MCP_MODE=standard or the guarded profile) only when write operations are intended.";
+    case "WORKSPACE_NOT_ALLOWED":
+      return "The workspace is not in UVCS_ALLOWED_WORKSPACES. Use the configured workspace or ask the user to update the MCP configuration.";
+    case "WORKSPACE_NOT_FOUND":
+      return "UVCS_WORKSPACE points to a directory that does not exist. Fix the path in the MCP client configuration.";
+    case "PATH_OUTSIDE_WORKSPACE":
+      return "Pass a path relative to the workspace root that stays inside the workspace.";
+    case "INVALID_PATH":
+      return "Pass a plain relative path such as Assets/Scenes/Main.unity. Paths cannot start with '-' or contain control characters.";
+    case "CONFIRM_TOKEN_INVALID":
+    case "CONFIRM_TOKEN_EXPIRED":
+    case "CONFIRM_TOKEN_ACTION_MISMATCH":
+      return "Tokens are single-use, short-lived, and bound to one action. Run the matching prepare tool again and confirm with its new token.";
+    case "NOTHING_TO_CHECKIN":
+      return "There are no tracked pending changes. Add new files with uvcs_add first, or inspect uvcs_pending_changes.";
+    case "WRITE_INTERRUPTED_STATE_UNKNOWN":
+      return "Do not retry blindly. Inspect uvcs_pending_changes and uvcs_branch_info, report the state to the user, and prepare again only if needed.";
     case "REPOSITORY_NOT_ALLOWED":
       return "Check UVCS_ALLOWED_REPOS or point UVCS_WORKSPACE to an allowed repository workspace.";
     case "PROCESS_SPAWN_FAILED":

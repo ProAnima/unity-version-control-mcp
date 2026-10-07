@@ -20,13 +20,13 @@ test("relative workspace paths cannot escape workspace", () => {
 
 test("allowed repo guard accepts repository and server from workspace info", () => {
   assert.doesNotThrow(() => assertRepoAllowed(
-    { allowedRepos: ["pas-Kodeks@SRV-IAN-N:8087"] },
-    { repository: "pas-Kodeks", server: "SRV-IAN-N:8087" }
+    { allowedRepos: ["MyGame@uvcs.example.com:8087"] },
+    { repository: "MyGame", server: "uvcs.example.com:8087" }
   ));
 
   assert.throws(() => assertRepoAllowed(
     { allowedRepos: ["other@server:8087"] },
-    { repository: "pas-Kodeks", server: "SRV-IAN-N:8087" }
+    { repository: "MyGame", server: "uvcs.example.com:8087" }
   ), /UVCS_ALLOWED_REPOS/);
 });
 

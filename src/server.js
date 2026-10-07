@@ -12,8 +12,16 @@ import { auditToolCall } from "./services/audit.js";
 
 const SERVER_INFO = {
   name: "uvcs-mcp",
-  version: "1.2.1"
+  version: "1.3.0"
 };
+
+const SERVER_INSTRUCTIONS = [
+  "UVCS MCP exposes a bounded Plastic SCM / Unity Version Control command surface.",
+  "Start with uvcs_setup_status to learn the workspace, safety profile, and naming rules.",
+  "Every write is two steps: call the *_prepare tool, show its payload to the user, and call the matching *_confirm tool only after the user explicitly approves that exact operation.",
+  "Never retry a confirm after WORKSPACE_CHANGED_SINCE_PREPARE or WRITE_INTERRUPTED_STATE_UNKNOWN: inspect uvcs_pending_changes and prepare again.",
+  "Checkin includes all tracked pending changes in the workspace. Keep Unity assets and their .meta files together."
+].join(" ");
 
 export async function startServer({ input = process.stdin, output = process.stdout, env = process.env } = {}) {
   const server = env.UVCS_FLEET_MANIFEST
@@ -26,6 +34,7 @@ export async function startServer({ input = process.stdin, output = process.stdo
 
 export function createMcpServer(env = process.env) {
   const config = loadConfig(env);
+  reportConfigWarnings(config);
   const backend = createCmBackend(config);
   const tools = createTools({ config, backend });
   return createRegisteredServer(tools, config);
@@ -33,18 +42,26 @@ export function createMcpServer(env = process.env) {
 
 export async function createFleetMcpServer(env = process.env) {
   const { configs } = await loadFleetConfigs(env.UVCS_FLEET_MANIFEST, env);
+  configs.forEach(reportConfigWarnings);
   return createRegisteredServer(createFleetTools(configs));
 }
 
+function reportConfigWarnings(config) {
+  for (const warning of config.configWarnings ?? []) {
+    process.stderr.write(`[uvcs-mcp] ${config.workspaceName ?? "uvcs"}: ${warning}\n`);
+  }
+}
+
 function createRegisteredServer(tools, defaultConfig) {
-  const server = new McpServer(SERVER_INFO);
+  const server = new McpServer(SERVER_INFO, { instructions: SERVER_INSTRUCTIONS });
 
   for (const definition of tools.list()) {
     server.registerTool(
       definition.name,
       {
         description: definition.description,
-        inputSchema: zodObjectFromJsonSchema(definition.inputSchema)
+        inputSchema: zodObjectFromJsonSchema(definition.inputSchema),
+        ...(definition.annotations ? { annotations: definition.annotations } : {})
       },
       async (args) => {
         const startedAt = Date.now();
@@ -110,8 +127,11 @@ function zodFieldFromJsonSchema(schema = {}) {
     field = z.enum(schema.enum);
   } else {
     switch (schema.type) {
+      case "integer":
       case "number":
-        field = z.number();
+        field = schema.type === "integer" ? z.number().int() : z.number();
+        if (schema.minimum !== undefined) field = field.min(schema.minimum);
+        if (schema.maximum !== undefined) field = field.max(schema.maximum);
         break;
       case "boolean":
         field = z.boolean();

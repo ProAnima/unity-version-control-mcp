@@ -1,5 +1,5 @@
 export function effectivePolicyReport(config) {
-  const warnings = [];
+  const warnings = [...(config.configWarnings ?? [])];
   if (config.mode === "standard" && config.allowedWorkspaces.length === 0) {
     warnings.push("Standard mode should pin UVCS_ALLOWED_WORKSPACES.");
   }

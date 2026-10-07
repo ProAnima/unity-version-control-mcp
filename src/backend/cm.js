@@ -39,14 +39,17 @@ export function createCmBackend(config) {
         rows: parseMachineReadableTable(result.stdout)
       });
     },
-    branchInfo: () => runCmSpec(config, CM_COMMANDS.statusText).then((result) => {
-      const raw = toRawResult(result);
+    branchInfo: async () => {
+      const raw = toRawResult(await runCmSpec(config, CM_COMMANDS.statusText));
       const firstLine = raw.stdout.split(/\r?\n/).find((line) => line.trim().length > 0) ?? "";
+      const selector = await readWorkspaceSelector(config);
       return {
         ...raw,
-        branchLine: firstLine
+        branchLine: firstLine,
+        selector,
+        branch: await resolveCurrentBranch(config, selector, firstLine)
       };
-    }),
+    },
     locks: async () => {
       const machine = await runCmSpec(config, CM_COMMANDS.locksMachine);
       if (machine.code === 0) {
@@ -89,16 +92,42 @@ export async function runCmSpec(config, spec) {
     });
   }
 
-  return await runProcess(config.cmPath, [...(config.cmArgs ?? []), ...spec.args], {
-    cwd: config.workspace || process.cwd(),
-    allowFailure: spec.allowFailure,
-    timeoutMs: spec.timeoutMs ?? (spec.mutation ? config.writeTimeoutMs : config.readTimeoutMs),
-    maxOutputBytes: config.maxOutputBytes,
-    env: {
-      ...process.env,
-      LC_ALL: "C.UTF-8"
+  const cwd = spec.requireWorkspace === false ? process.cwd() : config.workspace;
+  try {
+    return await runProcess(config.cmPath, [...(config.cmArgs ?? []), ...spec.args], {
+      cwd,
+      allowFailure: spec.allowFailure,
+      timeoutMs: spec.timeoutMs ?? (spec.mutation ? config.writeTimeoutMs : config.readTimeoutMs),
+      maxOutputBytes: config.maxOutputBytes,
+      outputEncoding: config.cmOutputEncoding,
+      env: {
+        ...process.env,
+        LC_ALL: "C.UTF-8"
+      }
+    });
+  } catch (error) {
+    if (error?.code === "PROCESS_SPAWN_FAILED" && cwd && !(await isDirectory(cwd))) {
+      throw new UvcsError(`Workspace directory does not exist: ${cwd}`, {
+        code: "WORKSPACE_NOT_FOUND",
+        details: { workspace: cwd }
+      });
     }
-  });
+    if (spec.mutation && (error?.code === "PROCESS_TIMEOUT" || error?.code === "PROCESS_OUTPUT_TOO_LARGE")) {
+      throw new UvcsError(`cm ${spec.args[0]} was interrupted; the workspace state is unknown`, {
+        code: "WRITE_INTERRUPTED_STATE_UNKNOWN",
+        details: { reason: error.code, ...error.details }
+      });
+    }
+    throw error;
+  }
+}
+
+async function isDirectory(directory) {
+  try {
+    return (await fs.stat(directory)).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 export async function readWorkspaceInfo(workspace) {
@@ -117,6 +146,11 @@ export async function resolveWorkspaceInfo(config) {
   const fileInfo = await readWorkspaceInfo(config.workspace);
   if (hasWorkspaceIdentity(fileInfo)) return fileInfo;
 
+  const selector = await readWorkspaceSelector(config);
+  if (selector?.repository && selector?.server) {
+    return { ...fileInfo, repository: selector.repository, server: selector.server };
+  }
+
   try {
     const result = await runCmSpec(config, CM_COMMANDS.statusHeader);
     return {
@@ -126,6 +160,56 @@ export async function resolveWorkspaceInfo(config) {
   } catch {
     return fileInfo;
   }
+}
+
+async function readWorkspaceSelector(config) {
+  try {
+    return parseWorkspaceSelector((await runCmSpec(config, CM_COMMANDS.workspaceSelector)).stdout);
+  } catch {
+    return null;
+  }
+}
+
+// `cm wi --machinereadable` prints `<BR|CS|LB> <spec> <repository>@<server>`,
+// for example `BR /main MyGame@uvcs.example.com:8087`. Branch names may
+// contain spaces, so the identity is the last token.
+export function parseWorkspaceSelector(text) {
+  const line = String(text ?? "").split(/\r?\n/).map((item) => item.trim()).find(Boolean) ?? "";
+  const match = line.match(/^(BR|CS|LB|SH)\s+(.+)\s+(\S+@\S+)$/);
+  if (!match) return null;
+  const [, type, spec, identity] = match;
+  const separator = identity.lastIndexOf("@");
+  return {
+    type,
+    spec: spec.trim(),
+    repository: identity.slice(0, separator),
+    server: identity.slice(separator + 1)
+  };
+}
+
+async function resolveCurrentBranch(config, selector, statusLine) {
+  if (selector?.type === "BR") return selector.spec;
+  if (selector?.type === "CS" && /^\d+$/.test(selector.spec)) {
+    try {
+      const result = await runCmSpec(config, findChangesetsCommand({
+        query: `where changesetid=${selector.spec}`,
+        format: "{branch}"
+      }));
+      const branch = result.stdout.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+      if (branch) return branch.startsWith("/") ? branch : `/${branch}`;
+    } catch {
+      // Fall back to the status header below.
+    }
+  }
+  return parseBranchFromStatusLine(statusLine);
+}
+
+// Status headers look like `/main@repo@server (cs:11 - head)` when a branch
+// is loaded and `cs:11@repo@server (head)` when a changeset is loaded.
+export function parseBranchFromStatusLine(line) {
+  const text = String(line ?? "").trim();
+  if (text.startsWith("/")) return text.slice(0, text.indexOf("@") === -1 ? undefined : text.indexOf("@"));
+  return null;
 }
 
 export function parseStatusHeaderWorkspaceInfo(text) {
