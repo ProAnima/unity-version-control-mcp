@@ -276,10 +276,14 @@ test("cm is resolved to an absolute path and written as UVCS_CM_PATH", async () 
 
 test("Claude Code gets an equivalent user-scope command hint", async () => {
   const box = await sandbox();
-  const output = await init(box, ["--dry-run", "--client=claude-code", "--cm=cm"], { platform: "linux" });
+  // A space forces shell quoting on every host OS, whatever the temp directory looks like.
+  const workspace = path.join(box.root, "my workspace");
+  await fs.mkdir(path.join(workspace, ".plastic"), { recursive: true });
+  await fs.writeFile(path.join(workspace, ".plastic", "plastic.workspace"), "workspace\nguid\n", "utf8");
+  const output = await init({ ...box, workspace }, ["--dry-run", "--client=claude-code", "--cm=cm"], { platform: "linux" });
   const line = output.split("\n").find((item) => item.trim().startsWith("claude mcp add"));
   assert.ok(line, output);
-  assert.match(line, /--env 'UVCS_WORKSPACE=.*' /);
+  assert.match(line, /--env 'UVCS_WORKSPACE=.*my workspace' /);
   assert.match(line, /--env UVCS_CM_PATH=cm --scope user --transport stdio uvcs -- npx -y @proanima\/uvcs-mcp@/);
 });
 
