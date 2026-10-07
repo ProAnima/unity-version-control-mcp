@@ -10,6 +10,8 @@ Security fixes target the current release line.
 | `0.3.x` | Security fixes only |
 | `< 0.3` | No |
 
+Users of `1.2.x` and earlier should upgrade to `1.3.0` or newer. It fixes option injection through item paths and branch/label names, which in write-enabled workspaces allowed a recursive undo from the workspace root; see [docs/security-review.md](docs/security-review.md).
+
 ## Reporting a Vulnerability
 
 Please do not open a public issue for a vulnerability.
@@ -39,13 +41,14 @@ UVCS MCP is designed as a constrained source-control bridge:
 - no arbitrary `cm` command execution;
 - no repository deletion or repository rename tools;
 - no raw `cm api` server startup;
-- write tools are gated by `UVCS_MCP_MODE=standard`;
-- critical write tools use prepare/confirm tokens;
+- write tools are gated by `UVCS_MCP_MODE=standard`; an unrecognized mode means `readonly`;
+- every write tool uses prepare/confirm tokens, and MCP tool annotations mark confirm tools as writes so clients can require human approval;
 - fleet calls require an explicit workspace and confirmation tokens cannot cross workspaces;
 - workspace and repository allowlists are enforced when configured;
-- file paths are constrained to `UVCS_WORKSPACE`.
+- file paths are constrained to `UVCS_WORKSPACE`, and paths, branch names, and label names cannot start with `-`, so they are never parsed by `cm` as options;
+- `cm` runs without a shell and with stdin closed, under read/write timeouts and an output limit.
 
-See [docs/security.md](docs/security.md) for the operational model.
+See [docs/security.md](docs/security.md) for the operational model, [docs/security-review.md](docs/security-review.md) for reviewed findings, and [docs/configuration.md](docs/configuration.md) for every setting.
 
 ## Disclosure
 

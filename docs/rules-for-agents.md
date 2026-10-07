@@ -4,7 +4,7 @@ Use this MCP as a safe SCM assistant for Plastic SCM / Unity Version Control sou
 
 ## Before Reading or Editing
 
-- Start with `uvcs_workspace_status`.
+- Start with `uvcs_setup_status` to learn the workspace, safety profile, write limits, and naming rules, then `uvcs_workspace_status`.
 - Use `uvcs_pending_changes` before summarizing user work.
 - Use `uvcs_locks` before editing files that may be locked by other users.
 - Use `uvcs_unity_meta_diagnostics` for Unity asset workspaces before checkin, especially when assets were created, moved, or deleted.
@@ -19,8 +19,10 @@ Use this MCP as a safe SCM assistant for Plastic SCM / Unity Version Control sou
 ## Write Operations
 
 - Do not run write tools unless the user asked for the operation.
-- Update, add, branch create, label create, switch, merge, and checkin must use their `*_prepare` tool followed by the matching `*_confirm` tool.
-- Never call any `*_confirm` tool unless the user explicitly approved the exact operation in the current conversation.
+- Update, add, undo, branch create, label create, switch, merge, checkin, and style init must use their `*_prepare` tool followed by the matching `*_confirm` tool.
+- Show the user the prepare result (target, paths, pending changes, warnings) and wait. Never call any `*_confirm` tool unless the user explicitly approved that exact operation in the current conversation. Approval of one operation does not cover another.
+- A checkin always includes all tracked pending changes in the workspace, not only the files you edited. Review `uvcs_pending_changes` with the user before preparing it, and keep every Unity asset and its `.meta` file in the same checkin.
+- Never retry a confirm after `WORKSPACE_CHANGED_SINCE_PREPARE` or `WRITE_INTERRUPTED_STATE_UNKNOWN`. Inspect `uvcs_pending_changes` and `uvcs_branch_info`, report the state to the user, and prepare again only if the user still wants the operation.
 - Never attempt repository deletion, repository rename, arbitrary shell commands, or raw `cm` execution.
 
 ## Communication

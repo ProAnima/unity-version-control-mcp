@@ -2,6 +2,61 @@
 
 ## Unreleased
 
+## 1.3.0 - 2026-10-07
+
+Hardening release: closes an option-injection gap in path-scoped writes, makes `cm` execution reliable on Windows and with Cyrillic paths, and makes setup safer and easier.
+
+### Security
+
+- Item paths, branch names, and labels that start with `-` are rejected. In 1.2.x a path such as `-r` reached `cm undo` as an option, so `uvcs_undo` could widen to a recursive undo of the workspace root in the `standard` and `guarded` profiles.
+- Dependencies updated to `@modelcontextprotocol/sdk` 1.32.1 and `zod` 4.6.5; transitive advisories (`fast-uri`, `hono`, `ip-address`) resolved. `npm audit` reports zero known vulnerabilities. The ineffective `overrides` block was removed.
+
+### Fixed
+
+- `cm` output is decoded once from bytes. On Windows, non-UTF-8 output is decoded with the system OEM/ANSI code page, so Cyrillic and other non-ASCII paths and comments are no longer corrupted. `UVCS_CM_OUTPUT_ENCODING` can force a specific encoding.
+- `cm` runs with a closed stdin, so interactive prompts fail fast instead of hanging until the timeout.
+- Timeouts and output limits terminate the whole `cm` process tree and report only after it exits, so write locks are never released while `cm` is still running. Interrupted writes return `WRITE_INTERRUPTED_STATE_UNKNOWN`.
+- Private and ignored items no longer count as pending changes: they do not block switch or merge, do not count toward `UVCS_CHECKIN_MAX_FILES`, and do not invalidate prepare/confirm fingerprints.
+- The current branch is read from `cm wi`, including changeset-loaded workspaces; the branch safety report no longer reports the repository name as the branch.
+- Repository identity for the guarded profile is detected from local workspace metadata (`cm wi`), so guarded workspaces start while the server is unreachable.
+- Write locks refresh a heartbeat during long operations, reclaim locks left by dead processes immediately, and remove abandoned cleanup markers.
+- Unity `.meta` diagnostics follow Unity import rules (hidden items, `Samples~`, `*.tmp`) and no longer flag `Packages/manifest.json`.
+- A missing workspace directory reports `WORKSPACE_NOT_FOUND` instead of looking like a missing `cm`.
+
+### Added
+
+- MCP tool annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`) so clients can auto-approve reads and require approval for writes.
+- Server instructions that describe the prepare → user approval → confirm workflow.
+- Specific error codes with targeted hints for path, mode, allowlist, and confirmation-token failures.
+- `uvcs_update_workspace_prepare` reports pending changes and warns before updating over them.
+- `uvcs_checkin_prepare` refuses an empty checkin (`NOTHING_TO_CHECKIN`) and states that checkin covers all tracked pending changes.
+- Integer schemas with bounds for numeric tool inputs; diff output is capped at 200,000 characters.
+- Configuration warnings for unrecognised `UVCS_MCP_MODE` values and invalid numbers.
+- `npm run smoke:pack` installs the packed tarball into a clean project and starts the installed server.
+
+### Setup
+
+- `init` writes project-scoped client files (`.mcp.json`, `.cursor/mcp.json`, `.kiro/settings/mcp.json`, `opencode.json`, `.agents/mcp_config.json`) into the workspace folder by default, or into `--project-dir`, and refuses to write them into the uvcs-mcp package folder.
+- On Windows the npm install source is launched as `cmd /c npx -y @proanima/uvcs-mcp@<version>`.
+- The absolute `cm` path is detected and written as `UVCS_CM_PATH`, so GUI clients that do not inherit the shell `PATH` (macOS) still find `cm`.
+- Every target config is validated before anything is written; malformed or JSONC configs abort the run (or are skipped with `--skip-invalid` and a manual snippet).
+- Backups are timestamped and never overwritten; unchanged files are not rewritten.
+- `--print-config` / `--dry-run` show only the uvcs entries, never other servers' settings or tokens.
+- Codex `config.toml` merging preserves array tables, quoted headers, comments, and user keys in the uvcs table, honours `CODEX_HOME`, and sets `startup_timeout_sec = 60` for the npm source.
+- Flags are parsed strictly (`--key=value` and `--key value`); unknown flags and clients fail with a suggestion. `init --help` and `doctor --help` document every option.
+- `doctor` reports a missing path or a folder that is not a UVCS workspace instead of blaming `cm`, and exits non-zero without a workspace unless `--allow-no-workspace` is passed.
+- Antigravity uses `.agents/mcp_config.json` (project) and the new `antigravity-global` client (`~/.gemini/config/mcp_config.json`). The Zed template uses the current flat `context_servers` format.
+- `init` prints an equivalent `claude mcp add --scope user` command for Claude Code.
+- The server no longer switches into doctor mode when its install path happens to contain "doctor".
+
+### Changed
+
+- Node.js 22 or newer is required (Node.js 20 reached end of life in April 2026).
+- Fleet manifests reject duplicate workspace paths, and process-wide `UVCS_*` settings no longer leak into every fleet workspace (only `UVCS_CM_PATH`, `UVCS_CM_ARGS`, and `UVCS_CM_OUTPUT_ENCODING` are shared).
+- The npm package no longer ships the README header image (1.6 MB → under 100 kB).
+- `UVCS_LOCALE` was removed; it was never used.
+- CI covers Ubuntu, Windows, and macOS on Node.js 22 and 24. Release checks fail on any stale version pin in user-facing docs, and the publish workflow verifies that the tag matches the package version.
+
 ## 1.2.1 - 2026-07-24
 
 Patch release for reliable guarded fleet operation on real Plastic SCM workspaces.
@@ -199,5 +254,5 @@ Initial alpha release.
 
 ### Tested
 
-- Plastic SCM `10.0.16.6656` on `pas-Kodeks@SRV-IAN-N:8087`.
+- Plastic SCM `10.0.16.6656` on a self-hosted server.
 - Full MCP E2E flow: branch create, switch, add, checkin, label create, branch from label, merge, merge checkin, switch back to `/main`.

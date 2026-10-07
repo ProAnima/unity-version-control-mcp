@@ -1,18 +1,18 @@
 # UVCS MCP - Unity Version Control / Plastic SCM MCP Server
 
-![UVCS MCP header](assets/uvcs-mcp-header.png)
+![UVCS MCP header](https://raw.githubusercontent.com/ProAnima/unity-version-control-mcp/main/assets/uvcs-mcp-header.png)
 
 Safe MCP server for Plastic SCM, Unity Version Control, and Unity DevOps Version Control source-control workspaces (`cm` **10.0.16.6656+**, including **11.x**).
 
 UVCS MCP connects AI IDEs and coding agents to the local `cm` CLI through a fixed allowlist of documented SCM commands. It helps agents inspect source-control workspace state, prepare changes, create branches and labels, run guarded checkins, and perform merges without arbitrary shell access.
 
-Current release: `1.2.1`. Supported `cm` clients: **10.0.16.6656 and newer**, including Unity Version Control / Unity DevOps Version Control **11.x**.
+Current release: `1.3.0`. Supported `cm` clients: **10.0.16.6656 and newer**, including Unity Version Control / Unity DevOps Version Control **11.x**.
 
 ## Requirements
 
-- Node.js 20, 22, or 24;
+- Node.js 22 or newer (tested on 22 and 24);
 - an existing Plastic SCM / Unity Version Control workspace;
-- `cm` available in `PATH`, or an explicit `--cm=<path>`;
+- the `cm` CLI. `init` finds it on `PATH` or in the standard install folders and writes its absolute path; otherwise pass `--cm=<path>`;
 - a logged-in `cm` client with access to the workspace server.
 
 ## Not a Unity Editor MCP
@@ -26,17 +26,17 @@ It works with the Plastic SCM / Unity Version Control `cm` CLI and focuses on so
 For one workspace, start with the `guarded` profile:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.2.1 init \
+npx -y @proanima/uvcs-mcp@1.3.0 init \
   --client=cursor,codex \
   --workspace="D:/Repositories/YourWorkspace" \
   --safety=guarded \
   --print-config
 ```
 
-Review the preview, remove `--print-config` to apply it, and validate the result:
+The preview shows only the `uvcs` entries, the target files, and whether each file would be created, merged, or left unchanged. Project files such as `.cursor/mcp.json` go into the workspace folder; pass `--project-dir=<folder>` to put them elsewhere. Remove `--print-config` to apply it, then validate the result:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.2.1 doctor \
+npx -y @proanima/uvcs-mcp@1.3.0 doctor \
   --workspace="D:/Repositories/YourWorkspace"
 ```
 
@@ -50,6 +50,8 @@ uvcs_style_setup_check
 
 Use `readonly` when inspection is sufficient. Use `standard` only for trusted or disposable workspaces where repository identity pinning is intentionally not required.
 
+Configure the MCP client to auto-approve only read-only tools and to ask you before every `*_confirm` tool. See [Clients](docs/clients.md).
+
 ## AI-Assisted Install
 
 Ask your AI IDE to install this MCP server from the GitHub repository URL.
@@ -60,14 +62,18 @@ For example:
 Install this MCP server from https://github.com/ProAnima/unity-version-control-mcp, configure it for my Plastic SCM / Unity Version Control source-control workspace, and run uvcs_doctor.
 ```
 
-Or install manually:
+## Install From a Clone
+
+Use a clone only when client configuration should run that checkout instead of the npm package:
 
 ```bash
 git clone https://github.com/ProAnima/unity-version-control-mcp.git uvcs-mcp
 cd uvcs-mcp
 npm ci
-node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro --workspace="D:/Repositories/YourWorkspace"
+node src/cli.js init-local --client=cursor --workspace="D:/Repositories/YourWorkspace"
 ```
+
+Always pass `--workspace` (or `--project-dir`): project files are written into the workspace folder, and `init` refuses to write them into the uvcs-mcp folder itself. Preview first with `--print-config`.
 
 Restart your MCP client, then ask it to run:
 
@@ -76,48 +82,38 @@ uvcs_doctor
 uvcs_workspace_status
 ```
 
-Preview config changes without writing:
-
-```bash
-node src/cli.js init-local --client=all --workspace="D:/Repositories/YourWorkspace" --print-config
-```
-
 ## Manual Setup By OS
 
 Windows:
 
 ```powershell
-node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro,windsurf --workspace="D:\Repositories\YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.3.0 init --client=cursor --workspace="D:\Repositories\YourWorkspace"
 ```
 
 macOS:
 
 ```bash
-node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro,windsurf --workspace="$HOME/Repositories/YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.3.0 init --client=cursor --workspace="$HOME/Repositories/YourWorkspace"
 ```
 
 Linux:
 
 ```bash
-node src/cli.js init-local --client=cursor,codex,claude-code,opencode,antigravity,kiro,windsurf --workspace="$HOME/Repositories/YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.3.0 init --client=cursor --workspace="$HOME/Repositories/YourWorkspace"
 ```
 
-If `cm` is not in `PATH`, add `--cm=/path/to/cm` or set `UVCS_CM_PATH`.
+Replace `cursor` with your client, or list several separated by commas. If `cm` is not found, add `--cm=/path/to/cm`. On macOS this matters for GUI clients, which do not inherit the shell `PATH`; `init` writes the absolute `cm` path as `UVCS_CM_PATH` for that reason.
 
-## npm Install
+`init` validates every target before writing. A malformed or JSONC config aborts the run with nothing written, unless `--skip-invalid` is passed, which skips that client and prints the entry to add by hand. Changed files are backed up as `<file>.<YYYYMMDDHHmmss>.bak`; unchanged files are not rewritten. Run `uvcs-mcp init --help` for every option.
 
-```bash
-npx -y @proanima/uvcs-mcp@1.2.1 init --client=cursor,codex --workspace="D:/Repositories/YourWorkspace" --safety=guarded
-```
+## Manual MCP Block
 
-`init` uses the npm package as its install source. Use `init-local` only when client configuration should run the current git checkout.
-
-Manual MCP block:
+Windows:
 
 ```json
 {
-  "command": "npx",
-  "args": ["-y", "@proanima/uvcs-mcp@1.2.1"],
+  "command": "cmd",
+  "args": ["/c", "npx", "-y", "@proanima/uvcs-mcp@1.3.0"],
   "env": {
     "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
     "UVCS_MCP_MODE": "readonly"
@@ -125,31 +121,48 @@ Manual MCP block:
 }
 ```
 
+On Windows `npx` is a `.cmd` shim, which clients that start servers without a shell (for example Claude Code on native Windows and Codex) cannot launch directly. Starting it through `cmd /c` works in every client.
+
+macOS and Linux:
+
+```json
+{
+  "command": "npx",
+  "args": ["-y", "@proanima/uvcs-mcp@1.3.0"],
+  "env": {
+    "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
+    "UVCS_MCP_MODE": "readonly"
+  }
+}
+```
+
+Every environment variable is described in [Configuration](docs/configuration.md).
+
 ## Supported Clients
 
-- Cursor
-- Cursor global
+- Cursor (project and global)
 - Codex
 - Claude Desktop
-- Claude Code
-- OpenCode
-- OpenCode global
-- Antigravity
-- Kiro
-- Kiro global
-- Windsurf
+- Claude Code (project `.mcp.json`; `init` also prints the equivalent `claude mcp add --scope user` command)
+- OpenCode (project and global)
+- Antigravity (project and global)
+- Kiro (project and global)
+- Windsurf / Devin Desktop
+- Zed (template only)
+
+See [Clients](docs/clients.md) for file locations.
 
 ## Safety Model
 
-- Default mode is `readonly`.
+- Default mode is `readonly`; an unrecognized `UVCS_MCP_MODE` also means `readonly`.
 - Protocol handling is provided by the official MCP TypeScript SDK.
 - Tool input is validated server-side with strict schemas.
 - Write tools require `UVCS_MCP_MODE=standard`.
-- Critical write operations use `*_prepare` followed by matching `*_confirm`.
-- Write confirmations are serialized per workspace.
-- Confirmed switch, merge, update, and checkin operations revalidate workspace state after prepare.
-- Multiple MCP processes coordinate writes through a workspace lock file.
-- Read and write commands have separate timeouts and bounded output.
+- Every write uses `*_prepare` followed by the matching `*_confirm`, and tools carry MCP annotations so clients can auto-approve reads and require approval for writes.
+- Checkin always includes all tracked pending changes in the workspace; keep Unity assets and their `.meta` files together.
+- Item paths, branch names, and label names that `cm` would read as options (leading `-`) are rejected.
+- Write confirmations are serialized per workspace and across MCP processes, and switch, merge, update, undo, and checkin revalidate workspace state after prepare.
+- `cm` runs without a shell and with stdin closed, under separate read and write timeouts and an output limit.
 - Repository delete, repository rename, arbitrary `cm`, arbitrary shell execution, and raw `cm api` startup are not exposed.
 - Optional JSONL audit logging is available with `UVCS_AUDIT_LOG=/path/to/uvcs-mcp-audit.jsonl`.
 
@@ -186,7 +199,7 @@ Manual MCP block:
 Use a fleet manifest to configure one MCP server for up to 50 named workspaces:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.2.1 init --manifest=workspaces.json --client=cursor,codex --print-config
+npx -y @proanima/uvcs-mcp@1.3.0 init --manifest=workspaces.json --client=cursor,codex --print-config
 ```
 
 Start from `templates/fleet/workspaces.example.json`. See [Multi-Workspace and Fleet Work](docs/multi-workspace.md) for safety profiles and the recommended prepare-all/confirm-each workflow.
@@ -196,7 +209,7 @@ In fleet mode every tool call requires an explicit `workspace` selector. Use `--
 Validate every configured workspace before restarting the client:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.2.1 doctor --manifest=workspaces.json
+npx -y @proanima/uvcs-mcp@1.3.0 doctor --manifest=workspaces.json
 ```
 
 For mass work, inspect every target first, prepare all writes, present one combined plan, and confirm each workspace independently. Cross-repository operations are not atomic.
@@ -204,11 +217,15 @@ For mass work, inspect every target first, prepare all writes, present one combi
 ## Development
 
 ```bash
+npm ci
 npm test
+npm run lint
 npm run check
 npm run audit:prod
+npm run release:check
 npm run smoke:fake
 npm run smoke:fleet
+npm run smoke:pack
 ```
 
 Run the real Plastic SCM smoke test against a disposable or safe workspace:
@@ -230,12 +247,13 @@ The smoke test creates temporary branches, labels, checkins, and a merge through
 
 - [Install](docs/install.md)
 - [Clients](docs/clients.md)
+- [Configuration](docs/configuration.md)
 - [Multi-Workspace and Fleet Work](docs/multi-workspace.md)
 - [Security](docs/security.md)
 - [Security Review](docs/security-review.md)
 - [Compatibility](docs/compatibility.md)
 - [Publishing](docs/publishing.md)
-- [Release notes: 1.2.1](docs/releases/v1.2.1.md)
+- [Release notes: 1.3.0](docs/releases/v1.3.0.md)
 - [Automation Style](docs/automation-style.md)
 - [Production Readiness](docs/production-readiness.md)
 - [Troubleshooting](docs/troubleshooting.md)

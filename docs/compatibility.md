@@ -7,8 +7,10 @@ The MCP server is server-location agnostic: it works with a workspace that is al
 ## Current Backend
 
 - Transport: MCP over stdio JSON-RPC.
-- Backend: local `cm` process, spawned without a shell.
+- Backend: local `cm` process, spawned without a shell, with stdin closed and `LC_ALL=C.UTF-8` in its environment. A command that waits for interactive input fails immediately.
+- Output decoding: strict UTF-8 first. On Windows, `cm` writes redirected output in the console code page (for example cp866 or cp1251 on Russian Windows); output that is not valid UTF-8 is decoded with the system OEM and ANSI code pages and the most readable result is used. `UVCS_CM_OUTPUT_ENCODING` forces one encoding; see [Configuration](configuration.md).
 - Discovery: `cm showcommands`, `cm version`, and `cm api --help`.
+- Node.js: 22 or newer.
 - Optional local REST: `cm api` starts Plastic SCM API on port `9090`; this project only detects availability for now and does not start a long-running REST server.
 
 ## Command Surface
@@ -22,10 +24,18 @@ The MCP server is server-location agnostic: it works with a workspace that is al
 | pending changes | `cm status --machinereadable` | Preferred structured form. |
 | pending changes with rev id | `cm status --includeRevId --machinereadable` | Best-effort for newer UVCS clients; falls back when unsupported. |
 | current branch | `cm status` | The first status line contains current branch/workspace context; `cm branch` without a subcommand is not portable across Plastic versions. |
+| workspace identity | `cm wi --machinereadable` | Reads the loaded branch/changeset and `repository@server` from local metadata, so it works offline. Used for repository allowlists and guarded setup when `.plastic/plastic.workspace` has no repository metadata; `cm status --header --nochanges` is the fallback. |
 | locks | `cm lock list --machinereadable` | Falls back to `cm lock list`. |
 | file diff | `cm diff <file>` | Path is constrained to `UVCS_WORKSPACE`. |
 | update | `cm update --noinput --machinereadable` | Requires prepare/confirm and `standard` mode; `--noinput` prevents interactive hangs. |
-| checkin | `cm checkin -c=<message> --applychanged --machinereadable` | Requires prepare/confirm and `standard` mode; `--applychanged` includes detected modified items. |
+| checkin | `cm checkin -c=<message> --applychanged --machinereadable` | Requires prepare/confirm and `standard` mode. Always includes all tracked pending changes in the workspace; `--applychanged` adds changed items that are not checked out. Private and ignored files are not included. |
+| add | `cm add -R <path>` | Requires prepare/confirm and `standard` mode. |
+| undo | `cm undo <path> [--recursive] --machinereadable` | Requires prepare/confirm and `standard` mode; one path, never the workspace root. |
+| branch create | `cm branch create <branch> --changeset=<cs> [-c=<comment>]` | Requires prepare/confirm and `standard` mode. Uses `--label=<label>` instead of `--changeset` when created from a label. |
+| label create | `cm label create <label> <cs:N> [-c=<comment>]` | Requires prepare/confirm and `standard` mode. |
+| switch | `cm switch <target>` | Requires prepare/confirm and `standard` mode; refused while tracked pending changes exist. |
+| merge | `cm merge <source> --merge --nointeractiveresolution --machinereadable [-c=<comment>]` | Requires prepare/confirm and `standard` mode; refused while tracked pending changes exist. No preview; the result stays pending until a checkin. |
+| analytics and cleanup helpers | `cm find changeset` / `cm find branch` with `--format` and `--nototal` | Read-only queries built from validated inputs. |
 
 The server does not expose arbitrary `cm` commands.
 
@@ -46,11 +56,13 @@ UVCS MCP targets the shared Plastic SCM / Unity Version Control `cm` CLI. The su
 
 Older `cm` builds may work when they expose the same command surface, but they are not part of the current support statement.
 
+Gluon / partial workspaces are not supported: the server uses full-workspace commands such as `cm update`, `cm switch`, and `cm checkin`, not the `cm partial` command set.
+
 ## Tested Matrix
 
 | Product | Version | Status | Notes |
 | --- | --- | --- | --- |
-| Plastic SCM | `10.0.16.6656` | Tested pass | Full MCP E2E smoke passed on `pas-Kodeks@SRV-IAN-N:8087`. |
+| Plastic SCM | `10.0.16.6656` | Tested pass | Full MCP E2E smoke passed against a live repository on a self-hosted server. |
 | Plastic SCM | `10.x` (newer than baseline) | Tested pass | Same `cm` CLI surface; validated in live workspaces. |
 | Unity Version Control / Unity DevOps Version Control | `11.x` | Tested pass | Validated across multiple `11.x` client versions in live workspaces. |
 

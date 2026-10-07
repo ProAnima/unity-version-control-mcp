@@ -14,13 +14,21 @@ Before opening an issue, run:
 uvcs_doctor
 ```
 
-Or from a checkout:
+Or from a terminal:
 
 ```bash
-node src/cli.js doctor --workspace="D:/Repositories/YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.3.0 doctor --workspace="D:/Repositories/YourWorkspace"
 ```
 
-Please include sanitized output only. Remove server credentials, access tokens, private paths, and proprietary repository contents.
+From a checkout, use `node src/cli.js doctor --workspace="D:/Repositories/YourWorkspace"`.
+
+Also include:
+
+- the UVCS MCP version and Node.js version (22 or newer is required);
+- the `warnings` from `uvcs_setup_status`;
+- the `error.code` and `hint` of the failing tool result.
+
+Please include sanitized output only. Remove server credentials, access tokens, private paths, repository and server names, and proprietary repository contents. See [docs/troubleshooting.md](docs/troubleshooting.md) for common errors and [docs/configuration.md](docs/configuration.md) for settings.
 
 For security reports, use [SECURITY.md](SECURITY.md).
 
