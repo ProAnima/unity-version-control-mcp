@@ -1,6 +1,7 @@
 [mcp_servers.uvcs]
 command = "npx"
 args = ["-y", "@proanima/uvcs-mcp"]
+startup_timeout_sec = 60
 
 [mcp_servers.uvcs.env]
 UVCS_WORKSPACE = "D:/Repositories/YourWorkspace"

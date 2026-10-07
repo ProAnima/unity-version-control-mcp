@@ -1,13 +1,11 @@
 {
   "context_servers": {
     "uvcs": {
-      "command": {
-        "path": "npx",
-        "args": ["-y", "@proanima/uvcs-mcp"],
-        "env": {
-          "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
-          "UVCS_MCP_MODE": "readonly"
-        }
+      "command": "npx",
+      "args": ["-y", "@proanima/uvcs-mcp"],
+      "env": {
+        "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
+        "UVCS_MCP_MODE": "readonly"
       }
     }
   }

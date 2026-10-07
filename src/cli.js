@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 import { startServer } from "./server.js";
-import { runDoctor } from "./cli/doctor.js";
-import { runInit } from "./cli/init.js";
+import { doctorHelp, runDoctor } from "./cli/doctor.js";
+import { initHelp, runInit } from "./cli/init.js";
 
 const [command, ...args] = process.argv.slice(2);
-const invokedAsDoctor = process.argv[1]?.toLowerCase().includes("doctor");
 
 async function main() {
-  if (invokedAsDoctor || command === "doctor") {
+  if (command === "doctor") {
     await runDoctor(args);
     return;
   }
@@ -26,34 +25,34 @@ async function main() {
     process.stdout.write(`UVCS MCP
 
 Usage:
-  uvcs-mcp              Start MCP stdio server
-  uvcs-mcp init         Configure MCP clients
-  uvcs-mcp init-local   Configure clients to run this git checkout
-  uvcs-mcp doctor       Check one workspace or every workspace in a manifest
+  uvcs-mcp                        Start the MCP stdio server (what MCP clients run)
+  uvcs-mcp init [options]         Configure MCP clients
+  uvcs-mcp init-local [options]   Configure clients to run this git checkout
+  uvcs-mcp doctor [options]       Check cm and one workspace, or every workspace in a manifest
+  uvcs-mcp <command> --help       Show the options of one command
 
-Setup:
-  --workspace=<path>    Configure one workspace
-  --manifest=<file>     Configure named workspaces from a fleet manifest
-  --fleet-layout=<mode> single (one MCP) | isolated (one MCP per workspace)
-  --safety=<profile>    readonly | guarded | standard
-  --allowed-repos=<ids> Semicolon-separated repository@server allowlist
-  --print-config        Preview without writing
-
+Setup options (init, init-local)
+--------------------------------
+${withoutUsage(initHelp())}
 Safety profiles:
-  readonly              Inspection and planning only
-  guarded               Recommended writes: pins workspace and repository
-  standard              Writes with workspace pinning; trusted workspaces only
+  readonly                 Inspection and planning only
+  guarded                  Recommended writes: pins workspace and repository
+  standard                 Writes with workspace pinning; trusted workspaces only
 
+Doctor options
+--------------
+${withoutUsage(doctorHelp())}
 After setup:
   uvcs-mcp doctor --workspace=<path>
   uvcs-mcp doctor --manifest=<file>
   Then restart the MCP client and call uvcs_setup_status.
 
 Environment:
-  UVCS_WORKSPACE        Required for normal server use
-  UVCS_FLEET_MANIFEST   Optional manifest for one-process multi-workspace mode
-  UVCS_CM_PATH          Optional path to cm executable
-  UVCS_MCP_MODE         readonly | standard
+  UVCS_WORKSPACE           Required for normal server use
+  UVCS_FLEET_MANIFEST      Optional manifest for one-process multi-workspace mode
+  UVCS_CM_PATH             Optional path to the cm executable
+  UVCS_MCP_MODE            readonly | standard
+  CODEX_HOME               Codex config folder used by init --client=codex
 `);
     return;
   }
@@ -61,7 +60,12 @@ Environment:
   await startServer();
 }
 
+function withoutUsage(help) {
+  return help.replace(/^Usage:\n(?: {2}.*\n)+\n/, "");
+}
+
 main().catch((error) => {
-  process.stderr.write(`[uvcs-mcp] ${error?.stack ?? error}\n`);
-  process.exitCode = 1;
+  // Setup errors carry an exit code and a message meant for people, not a stack.
+  process.stderr.write(`[uvcs-mcp] ${error?.exitCode ? error.message : error?.stack ?? error}\n`);
+  process.exitCode = error?.exitCode ?? 1;
 });
