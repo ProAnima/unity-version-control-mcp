@@ -1,0 +1,59 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ProAnima/uvcs-mcp",
+  "title": "UVCS MCP",
+  "description": "Safe Plastic SCM / Unity Version Control MCP: history, review, merge preview, and guarded writes.",
+  "repository": {
+    "url": "https://github.com/ProAnima/unity-version-control-mcp",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/ProAnima/unity-version-control-mcp#readme",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/ProAnima/unity-version-control-mcp/main/assets/uvcs-mcp-icon.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    }
+  ],
+  "version": "1.4.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@proanima/uvcs-mcp",
+      "version": "1.4.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "UVCS_WORKSPACE",
+          "description": "Absolute path of the Plastic SCM / Unity Version Control workspace (the folder that contains .plastic).",
+          "format": "filepath",
+          "isRequired": true,
+          "placeholder": "D:/Repositories/MyGame"
+        },
+        {
+          "name": "UVCS_MCP_MODE",
+          "description": "readonly (default) for inspection only; standard enables prepare/confirm write tools.",
+          "choices": ["readonly", "standard"],
+          "default": "readonly"
+        },
+        {
+          "name": "UVCS_ALLOWED_WORKSPACES",
+          "description": "Workspace paths the server may use, separated by ';'. Set it to UVCS_WORKSPACE to pin the workspace."
+        },
+        {
+          "name": "UVCS_ALLOWED_REPOS",
+          "description": "repository@server:port identities the workspace must match, separated by ';' (the guarded profile)."
+        },
+        {
+          "name": "UVCS_CM_PATH",
+          "description": "Absolute path of the cm executable when it is not on PATH (GUI clients on macOS often need it).",
+          "format": "filepath"
+        }
+      ]
+    }
+  ]
+}

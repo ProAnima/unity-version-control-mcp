@@ -48,4 +48,70 @@ jobs:
       - run: npm run smoke:fake
       - run: npm run smoke:fleet
       - run: npm run smoke:pack
-      - run: npm publish --access public --provenance
+      # A re-run (for example after an MCP Registry failure) must not try to
+      # publish the same npm version again.
+      - name: Check whether this version is already on npm
+        id: npm-version
+        run: |
+          spec="$(node -p "const p = require('./package.json'); p.name + '@' + p.version")"
+          if npm view "$spec" version --prefer-online >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "$spec is already on npm; skipping npm publish."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.npm-version.outputs.published != 'true'
+        run: npm publish --access public --provenance
+
+  mcp-registry:
+    name: Publish to the MCP Registry
+    needs: npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      MCP_PUBLISHER_VERSION: v1.8.1
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+      # The registry validates mcpName in the published npm package, and npm
+      # can take a few minutes to serve a new version.
+      - name: Wait until npm serves this version
+        run: |
+          spec="$(node -p "const p = require('./package.json'); p.name + '@' + p.version")"
+          for attempt in $(seq 1 30); do
+            if npm view "$spec" mcpName --prefer-online 2>/dev/null | grep -q .; then
+              echo "$spec is available on npm."
+              exit 0
+            fi
+            echo "Waiting for $spec on npm (attempt $attempt of 30)..."
+            sleep 20
+          done
+          echo "$spec did not appear on npm within 10 minutes." >&2
+          exit 1
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Download and verify mcp-publisher
+        run: |
+          set -euo pipefail
+          os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          archive="mcp-publisher_${os}_${arch}.tar.gz"
+          base_url="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+
+          curl --fail --location --silent --show-error --output "$archive" "$base_url/$archive"
+          curl --fail --location --silent --show-error --output "$archive.sigstore.json" "$base_url/$archive.sigstore.json"
+          cosign verify-blob \
+            --bundle "$archive.sigstore.json" \
+            --certificate-identity "https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/${MCP_PUBLISHER_VERSION}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "$archive"
+          tar xzf "$archive" mcp-publisher
+          rm -f "$archive" "$archive.sigstore.json"
+      - name: Authenticate to the MCP Registry
+        run: ./mcp-publisher login github-oidc
+      - name: Publish server.json
+        run: ./mcp-publisher publish
