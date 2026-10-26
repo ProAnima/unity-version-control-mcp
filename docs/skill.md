@@ -13,7 +13,7 @@ The skill does not replace the MCP server. Configure the server first with `uvcs
 ## Install
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 skill install
+npx -y @proanima/uvcs-mcp@1.4.1 skill install
 ```
 
 By default the skill goes to the user-level folders of Claude Code (`~/.claude/skills`) and of the agents that read the shared `~/.agents/skills` folder. Choose agents with `--agent` (comma-separated, or `all`):
@@ -30,13 +30,13 @@ Examples:
 
 ```bash
 # Every agent, for the current user
-npx -y @proanima/uvcs-mcp@1.4.0 skill install --agent=all
+npx -y @proanima/uvcs-mcp@1.4.1 skill install --agent=all
 
 # Commit the skill with the workspace so the whole team gets it
-npx -y @proanima/uvcs-mcp@1.4.0 skill install --scope=project --project-dir="D:/Repositories/YourWorkspace" --agent=claude,agents
+npx -y @proanima/uvcs-mcp@1.4.1 skill install --scope=project --project-dir="D:/Repositories/YourWorkspace" --agent=claude,agents
 
 # Show the target folders without writing anything
-npx -y @proanima/uvcs-mcp@1.4.0 skill install --agent=all --print-only
+npx -y @proanima/uvcs-mcp@1.4.1 skill install --agent=all --print-only
 ```
 
 Installing again is a no-op when the copy is current. If an older or edited copy exists, the command stops; `--force` replaces it and keeps the old folder as `uvcs-version-control.<timestamp>.bak` next to the `skills` folder, where agents do not load it.

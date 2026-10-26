@@ -3,7 +3,7 @@
 Use `uvcs_doctor` first. It checks Node.js, the `cm` CLI, the configured workspace, current branch context, server access, and whether optional API discovery is available.
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 doctor --workspace="D:/Repositories/YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.4.1 doctor --workspace="D:/Repositories/YourWorkspace"
 ```
 
 From a git checkout, run `node src/cli.js doctor` with the same options. `doctor` reports a missing path (`Workspace path not found`) or a folder without `.plastic/plastic.workspace` (`Not a UVCS workspace`) directly instead of a `cm` error, and exits with code 1 when any check fails.
@@ -25,7 +25,7 @@ UVCS MCP uses the official Plastic SCM / Unity Version Control `cm` CLI. It does
 Fix:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 init --client=cursor --workspace="D:/Repositories/YourWorkspace" --cm="/path/to/cm"
+npx -y @proanima/uvcs-mcp@1.4.1 init --client=cursor --workspace="D:/Repositories/YourWorkspace" --cm="/path/to/cm"
 ```
 
 Or set:
@@ -43,7 +43,7 @@ On Windows `npx` is the `npx.cmd` shim. Current versions of Claude Code, Claude 
 ```json
 {
   "command": "cmd",
-  "args": ["/c", "npx", "-y", "@proanima/uvcs-mcp@1.4.0"]
+  "args": ["/c", "npx", "-y", "@proanima/uvcs-mcp@1.4.1"]
 }
 ```
 
@@ -153,7 +153,7 @@ Without `paths`, a checkin includes all tracked pending changes in the workspace
 Check the generated client config for your client:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 init --client=cursor --workspace="D:/Repositories/YourWorkspace" --print-config
+npx -y @proanima/uvcs-mcp@1.4.1 init --client=cursor --workspace="D:/Repositories/YourWorkspace" --print-config
 ```
 
 The preview shows the target file and whether it would be created, merged, or is unchanged. Then:
@@ -188,7 +188,7 @@ Any WHATWG encoding label works, for example `utf-8`, `ibm866`, or `windows-1251
 Prefer quoted paths in examples and configs:
 
 ```powershell
-npx -y @proanima/uvcs-mcp@1.4.0 init --client=cursor --workspace="D:\Repositories\YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.4.1 init --client=cursor --workspace="D:\Repositories\YourWorkspace"
 ```
 
 ## Unexpected `.meta` findings

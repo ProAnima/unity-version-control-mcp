@@ -6,7 +6,7 @@ Safe MCP server for Plastic SCM, Unity Version Control, and Unity DevOps Version
 
 UVCS MCP connects AI IDEs and coding agents to the local `cm` CLI through a fixed allowlist of documented SCM commands. It helps agents inspect source-control workspace state, prepare changes, create branches and labels, run guarded checkins, and perform merges without arbitrary shell access.
 
-Current release: `1.4.0`. Supported `cm` clients: **10.0.16.6656 and newer**, including Unity Version Control / Unity DevOps Version Control **11.x**.
+Current release: `1.4.1`. Supported `cm` clients: **10.0.16.6656 and newer**, including Unity Version Control / Unity DevOps Version Control **11.x**.
 
 ## Requirements
 
@@ -26,7 +26,7 @@ It works with the Plastic SCM / Unity Version Control `cm` CLI and focuses on so
 For one workspace, start with the `guarded` profile:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 init \
+npx -y @proanima/uvcs-mcp@1.4.1 init \
   --client=cursor,codex \
   --workspace="D:/Repositories/YourWorkspace" \
   --safety=guarded \
@@ -36,7 +36,7 @@ npx -y @proanima/uvcs-mcp@1.4.0 init \
 The preview shows only the `uvcs` entries, the target files, and whether each file would be created, merged, or left unchanged. Project files such as `.cursor/mcp.json` go into the workspace folder; pass `--project-dir=<folder>` to put them elsewhere. Remove `--print-config` to apply it, then validate the result:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 doctor \
+npx -y @proanima/uvcs-mcp@1.4.1 doctor \
   --workspace="D:/Repositories/YourWorkspace"
 ```
 
@@ -87,19 +87,19 @@ uvcs_workspace_status
 Windows:
 
 ```powershell
-npx -y @proanima/uvcs-mcp@1.4.0 init --client=cursor --workspace="D:\Repositories\YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.4.1 init --client=cursor --workspace="D:\Repositories\YourWorkspace"
 ```
 
 macOS:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 init --client=cursor --workspace="$HOME/Repositories/YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.4.1 init --client=cursor --workspace="$HOME/Repositories/YourWorkspace"
 ```
 
 Linux:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 init --client=cursor --workspace="$HOME/Repositories/YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.4.1 init --client=cursor --workspace="$HOME/Repositories/YourWorkspace"
 ```
 
 Replace `cursor` with your client, or list several separated by commas. If `cm` is not found, add `--cm=/path/to/cm`. On macOS this matters for GUI clients, which do not inherit the shell `PATH`; `init` writes the absolute `cm` path as `UVCS_CM_PATH` for that reason.
@@ -111,7 +111,7 @@ Replace `cursor` with your client, or list several separated by commas. If `cm` 
 ```json
 {
   "command": "npx",
-  "args": ["-y", "@proanima/uvcs-mcp@1.4.0"],
+  "args": ["-y", "@proanima/uvcs-mcp@1.4.1"],
   "env": {
     "UVCS_WORKSPACE": "D:/Repositories/YourWorkspace",
     "UVCS_MCP_MODE": "readonly"
@@ -119,7 +119,7 @@ Replace `cursor` with your client, or list several separated by commas. If `cm` 
 }
 ```
 
-On native Windows `npx` is the `npx.cmd` shim. Claude Code, Claude Desktop, Cursor, Codex 0.59+, Kiro, and OpenCode resolve it themselves. For Antigravity and Windsurf / Devin Desktop, or if a client reports `spawn npx ENOENT`, use `"command": "cmd"` with `"args": ["/c", "npx", "-y", "@proanima/uvcs-mcp@1.4.0"]`. See [Clients](docs/clients.md#launch-command-on-windows).
+On native Windows `npx` is the `npx.cmd` shim. Claude Code, Claude Desktop, Cursor, Codex 0.59+, Kiro, and OpenCode resolve it themselves. For Antigravity and Windsurf / Devin Desktop, or if a client reports `spawn npx ENOENT`, use `"command": "cmd"` with `"args": ["/c", "npx", "-y", "@proanima/uvcs-mcp@1.4.1"]`. See [Clients](docs/clients.md#launch-command-on-windows).
 
 Every environment variable is described in [Configuration](docs/configuration.md).
 
@@ -215,7 +215,7 @@ Read-only tools answer "what changed" questions in every safety profile:
 The package ships an agent skill (`SKILL.md`) that teaches Claude Code, Codex, Cursor, OpenCode, Gemini CLI, and other SKILL.md agents when and how to use these tools, including the prepare/confirm workflow and Unity `.meta` rules:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 skill install --agent=claude,agents
+npx -y @proanima/uvcs-mcp@1.4.1 skill install --agent=claude,agents
 ```
 
 See [Agent Skill](docs/skill.md) for every agent, project-scope installs, and the marketplace ZIP.
@@ -225,7 +225,7 @@ See [Agent Skill](docs/skill.md) for every agent, project-scope installs, and th
 Use a fleet manifest to configure one MCP server for up to 50 named workspaces:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 init --manifest=workspaces.json --client=cursor,codex --print-config
+npx -y @proanima/uvcs-mcp@1.4.1 init --manifest=workspaces.json --client=cursor,codex --print-config
 ```
 
 Start from `templates/fleet/workspaces.example.json`. See [Multi-Workspace and Fleet Work](docs/multi-workspace.md) for safety profiles and the recommended prepare-all/confirm-each workflow.
@@ -235,7 +235,7 @@ In fleet mode every tool call requires an explicit `workspace` selector. Use `--
 Validate every configured workspace before restarting the client:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 doctor --manifest=workspaces.json
+npx -y @proanima/uvcs-mcp@1.4.1 doctor --manifest=workspaces.json
 ```
 
 For mass work, inspect every target first, prepare all writes, present one combined plan, and confirm each workspace independently. Cross-repository operations are not atomic.
@@ -280,6 +280,7 @@ The smoke test creates temporary branches, labels, checkins, and a merge through
 - [Security Review](docs/security-review.md)
 - [Compatibility](docs/compatibility.md)
 - [Publishing](docs/publishing.md)
+- [Release notes: 1.4.1](docs/releases/v1.4.1.md)
 - [Release notes: 1.4.0](docs/releases/v1.4.0.md)
 - [Release notes: 1.3.0](docs/releases/v1.3.0.md)
 - [Automation Style](docs/automation-style.md)

@@ -11,7 +11,7 @@ Install this MCP server from https://github.com/ProAnima/unity-version-control-m
 Or configure one client from npm. Preview first, then run again without `--print-config`:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 init --client=cursor --workspace="D:/Repositories/YourWorkspace" --print-config
+npx -y @proanima/uvcs-mcp@1.4.1 init --client=cursor --workspace="D:/Repositories/YourWorkspace" --print-config
 ```
 
 Replace `cursor` with the client you use (`codex`, `claude-code`, `claude-desktop`, `kiro`, `opencode`, `antigravity`, `windsurf`, ...). Project files such as `.cursor/mcp.json` are written into the workspace folder.
@@ -30,7 +30,7 @@ Keep `--workspace` (or `--project-dir`): `init` refuses to write project files i
 Check the setup, restart the MCP client, and run:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 doctor --workspace="D:/Repositories/YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.4.1 doctor --workspace="D:/Repositories/YourWorkspace"
 ```
 
 ```text

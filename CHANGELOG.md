@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 1.4.1 - 2026-10-26
+
+Distribution release: UVCS MCP is published to the official MCP Registry as `io.github.ProAnima/uvcs-mcp`. The server and its tools are unchanged from 1.4.0.
+
+### Added
+
+- `server.json` for the MCP Registry: the npm package, stdio transport, the environment variables clients should ask for (`UVCS_WORKSPACE` required; `UVCS_MCP_MODE`, `UVCS_ALLOWED_WORKSPACES`, `UVCS_ALLOWED_REPOS`, `UVCS_CM_PATH` optional), and a 512px icon. `package.json` declares the matching `mcpName`.
+- The `Publish` workflow publishes `server.json` to the MCP Registry through GitHub OIDC after the npm package is available, using a pinned `mcp-publisher` verified with Sigstore.
+- `npm run release:check` and a test keep `server.json` consistent with `package.json`.
+
+### Changed
+
+- The npm job of the `Publish` workflow skips `npm publish` when the version is already on npm, so the workflow can be re-run for a failed registry step.
+
+### Fixed
+
+- `docs/configuration.md` still described `UVCS_CHECKIN_MAX_FILES` as limiting every pending change, and listed write timeouts without checkout and release checkout.
+
 ## 1.4.0 - 2026-10-26
 
 Feature release: history, review, and merge preview tools; checkin of selected paths with Unity `.meta` pairing; exclusive checkout; and an agent skill for Claude Code, Codex, Cursor, OpenCode, and other SKILL.md agents. It also fixes `uvcs_diff_file`, which opened the GUI diff tool, and refuses merges that would stop with conflicts.
