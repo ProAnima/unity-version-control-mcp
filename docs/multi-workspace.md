@@ -36,19 +36,19 @@ Copy `templates/fleet/workspaces.example.json`, then edit the paths and reposito
 Preview all client changes:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 init --manifest=workspaces.json --client=cursor,codex --print-config
+npx -y @proanima/uvcs-mcp@1.4.1 init --manifest=workspaces.json --client=cursor,codex --print-config
 ```
 
 Apply them after review:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 init --manifest=workspaces.json --client=cursor,codex
+npx -y @proanima/uvcs-mcp@1.4.1 init --manifest=workspaces.json --client=cursor,codex
 ```
 
 Validate all entries before restarting the MCP client:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 doctor --manifest=workspaces.json
+npx -y @proanima/uvcs-mcp@1.4.1 doctor --manifest=workspaces.json
 ```
 
 Fleet doctor reports `cm`, login, workspace status, and CLI capability results separately for every named workspace.

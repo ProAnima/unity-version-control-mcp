@@ -40,9 +40,9 @@ CI runs the gate (without the full `npm audit`) on Ubuntu, Windows, and macOS wi
 Example:
 
 ```bash
-git tag -a v1.4.0 -m "UVCS MCP 1.4.0"
-git push origin v1.4.0
-gh release create v1.4.0 --title "UVCS MCP 1.4.0" --notes-file docs/releases/v1.4.0.md
+git tag -a v1.4.1 -m "UVCS MCP 1.4.1"
+git push origin v1.4.1
+gh release create v1.4.1 --title "UVCS MCP 1.4.1" --notes-file docs/releases/v1.4.1.md
 ```
 
 Publishing the GitHub Release triggers `.github/workflows/publish.yml`.

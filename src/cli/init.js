@@ -20,7 +20,7 @@ import {
 } from "../platform/paths.js";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const NPM_PACKAGE_SPEC = "@proanima/uvcs-mcp@1.4.0";
+const NPM_PACKAGE_SPEC = "@proanima/uvcs-mcp@1.4.1";
 const CODEX_NPM_STARTUP_TIMEOUT_SEC = 60;
 const INSTALL_SOURCES = ["npm", "local"];
 const MODES = ["readonly", "standard"];

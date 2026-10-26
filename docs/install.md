@@ -13,20 +13,20 @@ Install this MCP server from https://github.com/ProAnima/unity-version-control-m
 ## From npm (recommended)
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 init --client=cursor --workspace="D:/Repositories/YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.4.1 init --client=cursor --workspace="D:/Repositories/YourWorkspace"
 ```
 
 Choose a safety profile explicitly for shared workspaces:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 init --client=cursor --workspace="D:/Repositories/YourWorkspace" --safety=guarded
+npx -y @proanima/uvcs-mcp@1.4.1 init --client=cursor --workspace="D:/Repositories/YourWorkspace" --safety=guarded
 ```
 
 `guarded` detects the repository identity from local workspace metadata (`.plastic/plastic.workspace` or `cm wi`), so it works while the server is unreachable. If detection fails, `init` prints the `cm` error and an example such as `--allowed-repos=repo@server:8087`; pass the identity explicitly with that flag.
 
 In an interactive terminal without `--yes`, `init` asks for missing values (install source, clients, workspace). With `--yes`, or without a terminal, it uses the defaults: the npm source, the `cursor` client, and `$UVCS_WORKSPACE` or the current folder as the workspace.
 
-Run `npx -y @proanima/uvcs-mcp@1.4.0 init --help` for every option. Options accept both `--key=value` and `--key value`. An unknown option or client stops with exit code 2 and points to the valid choices.
+Run `npx -y @proanima/uvcs-mcp@1.4.1 init --help` for every option. Options accept both `--key=value` and `--key value`. An unknown option or client stops with exit code 2 and points to the valid choices.
 
 ## Where configs are written
 
@@ -59,7 +59,7 @@ With the npm install source, most clients get plain `npx` on every platform. On 
 ```json
 {
   "command": "cmd",
-  "args": ["/c", "npx", "-y", "@proanima/uvcs-mcp@1.4.0"]
+  "args": ["/c", "npx", "-y", "@proanima/uvcs-mcp@1.4.1"]
 }
 ```
 
@@ -70,7 +70,7 @@ Plain form, used by all other clients and on macOS and Linux:
 ```json
 {
   "command": "npx",
-  "args": ["-y", "@proanima/uvcs-mcp@1.4.0"]
+  "args": ["-y", "@proanima/uvcs-mcp@1.4.1"]
 }
 ```
 
@@ -128,8 +128,8 @@ Use `--manifest=workspaces.json` for one MCP server that routes every call to an
 The initializer warns when a configured path does not contain `.plastic/plastic.workspace`. Validate before restarting the client:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.4.0 doctor --workspace="D:/Repositories/YourWorkspace"
-npx -y @proanima/uvcs-mcp@1.4.0 doctor --manifest=workspaces.json
+npx -y @proanima/uvcs-mcp@1.4.1 doctor --workspace="D:/Repositories/YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.4.1 doctor --manifest=workspaces.json
 ```
 
 `doctor` exits with code 1 when a check fails. A missing path or a folder without `.plastic/plastic.workspace` is reported as such, not as a missing `cm`. Without a workspace it checks only `cm`, prints a warning, and exits with code 1 unless `--allow-no-workspace` is passed. Invalid options exit with code 2.

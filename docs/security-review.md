@@ -1,6 +1,6 @@
 # Security Review
 
-This review records the security posture for the `1.x` release line, updated for `1.4.0`. The operational model is described in [Security Model](security.md).
+This review records the security posture for the `1.x` release line, updated for `1.4.1`. The operational model is described in [Security Model](security.md).
 
 ## Changes reviewed for 1.4.0
 
@@ -118,7 +118,8 @@ This review records the security posture for the `1.x` release line, updated for
 ## Dependency posture
 
 - Runtime dependencies are pinned to exact versions: `@modelcontextprotocol/sdk` `1.32.1` and `zod` `4.6.7`. No transitive overrides are needed.
-- At the `1.4.0` release, `npm audit` and `npm audit --omit=dev` report 0 vulnerabilities.
+- At the `1.4.1` release, `npm audit` and `npm audit --omit=dev` report 0 vulnerabilities.
+- npm and the MCP Registry are published from GitHub Actions through OIDC; no long-lived npm or registry tokens are stored. The workflow pins `mcp-publisher` and verifies its Sigstore bundle with cosign before running it.
 - `npm run audit:prod` runs in CI and before publishing.
 - UVCS MCP is stdio-only. The MCP SDK's HTTP server dependencies are installed but not used; any future HTTP transport work requires a separate review.
 - The npm package ships only runtime code, scripts, templates, and documentation; `npm run smoke:pack` installs the packed tarball into a clean project and starts the installed server before every release.

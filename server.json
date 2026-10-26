@@ -15,13 +15,13 @@
       "sizes": ["512x512"]
     }
   ],
-  "version": "1.4.0",
+  "version": "1.4.1",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@proanima/uvcs-mcp",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
