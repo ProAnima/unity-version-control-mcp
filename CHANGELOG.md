@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### Added
+
+- `uvcs_changeset_diff`: items added, changed, moved, and deleted in a changeset, label, shelve, or branch, or between two changesets or labels, with counts and Unity `.meta` pairing warnings.
+- `uvcs_revision_diff`: unified line diff of one file for a changeset (against its parent), between two revisions, or against the workspace copy, computed from `cm cat` because `cm` shows revision diffs only in its GUI.
+- `uvcs_file_history` (`cm history`, newest first, multi-line comments kept) and `uvcs_annotate` (`cm annotate` with a line window and per-owner counts).
+- `uvcs_branch_list` and `uvcs_label_list` with name, owner, date, parent, and branch filters. Branch and label names with spaces and parentheses are supported by the read-only tools.
+- `uvcs_merge_preview`: what a merge would do and which items conflict, into the workspace or, with `destination`, into a branch on the server (`cm merge --to` without `--merge`).
+- Path-scoped checkin: `uvcs_checkin_prepare` accepts `paths`. The `.meta` partner of every selected Unity asset is added (and an asset whose `.meta` is still private is refused with `UNITY_META_NOT_ADDED`), pending parent folders a change needs are listed and checked in with `--dependencies`, and the result reports what stays pending.
+- `uvcs_checkout` (prepare/confirm) checks files out, which takes the exclusive lock when the server's `lock.conf` covers them; locked, private, added, and directory items are refused. `uvcs_release_checkout` releases checkouts of unchanged files with `cm undo --unchanged` and reports files that stay checked out because they were modified.
+- `uvcs_locks` accepts `paths` and `scope` (`all`, `user`, `workspace`) and returns parsed `locks`.
+- Agent skill `uvcs-version-control` (`skills/`) for Claude Code, Codex, Cursor, OpenCode, and other SKILL.md agents; `uvcs-mcp skill install` copies it into each agent's skills folder, and `npm run pack:skill` validates it and builds the marketplace ZIP.
+
+### Changed
+
+- `zod` 4.6.7 and transitive updates (`body-parser`, `fast-uri`, `ip-address`); `npm audit` reports zero known vulnerabilities.
+- `uvcs_merge_prepare` runs the merge preview and refuses merges with conflicts (`MERGE_HAS_CONFLICTS`) or nothing to merge (`NOTHING_TO_MERGE`). Previously a conflicting merge ran with `--nointeractiveresolution`, reported success, and left the merge in progress, so every later checkin failed.
+- Item paths containing `*` or `?` are rejected; `cm` expands wildcards itself, so a wildcard could widen add, undo, checkout, or checkin.
+
+### Fixed
+
+- Checkin confirmation tokens also bind the size and modification time of the pending files. Editing an already changed file again after prepare leaves its status row unchanged, so the edit was previously checked in without review.
+- `uvcs_diff_file` no longer runs `cm diff <path>`, which opens the GUI diff tool and waits until it is closed: the tool hung until the read timeout and could open a window on the user's desktop. It now returns a unified diff of the loaded revision (`cm cat`) against the file on disk, with `status` and `movedFrom`, and accepts `context`.
+- `uvcs_changeset_analytics` date filters are sent to `cm find` as ISO `yyyy-MM-dd`. The previous `yyyy/MM/dd` form was parsed by locale and rejected, for example `2026/09/30` on systems with `dd.MM.yyyy` dates.
+
 ## 1.3.0 - 2026-10-07
 
 Hardening release: closes an option-injection gap in path-scoped writes, makes `cm` execution reliable on Windows and with Cyrillic paths, and makes setup safer and easier.

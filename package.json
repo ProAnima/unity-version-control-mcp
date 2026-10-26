@@ -20,6 +20,7 @@
     "src",
     "scripts",
     "templates",
+    "skills",
     "docs",
     "wiki",
     "README.md",
@@ -48,7 +49,8 @@
     "audit:prod": "npm audit --omit=dev",
     "release:check": "node scripts/release-check.js",
     "check": "node scripts/syntax-check.js",
-    "smoke:pack": "node scripts/pack-smoke.js"
+    "smoke:pack": "node scripts/pack-smoke.js",
+    "pack:skill": "node scripts/pack-skill.js"
   },
   "keywords": [
     "mcp",
@@ -68,12 +70,14 @@
     "codex",
     "claude",
     "opencode",
-    "kiro"
+    "kiro",
+    "agent-skills",
+    "skill-md"
   ],
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

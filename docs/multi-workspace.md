@@ -94,7 +94,7 @@ For a request such as "apply the same package change to the client and server wo
 1. Call `uvcs_setup_status`, `uvcs_workspace_status`, and `uvcs_branch_info` with every target workspace selector.
 2. Verify that every workspace has the expected identity, branch, repository, and naming rules.
 3. Apply file edits to every target workspace.
-4. Run diagnostics and prepare operations in every workspace. A checkin includes all tracked pending changes of that workspace, so check `uvcs_pending_changes` for unrelated work first.
+4. Run diagnostics and prepare operations in every workspace. Without `paths`, a checkin includes all tracked pending changes of that workspace, so check `uvcs_pending_changes` for unrelated work first or pass `paths`.
 5. Present one summary containing every workspace, intended files, branch/checkin names, and prepare result.
 6. After explicit approval, confirm each workspace independently.
 7. Stop on the first failure unless the user explicitly asks to continue, then report completed, failed, and untouched workspaces.

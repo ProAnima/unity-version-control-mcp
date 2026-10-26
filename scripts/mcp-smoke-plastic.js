@@ -97,12 +97,36 @@ try {
   });
   const secondChangeset = parseChangeset(secondCheckin.stdout);
 
+  const secondDiff = await callTool("uvcs_changeset_diff", { source: `cs:${secondChangeset}` });
+  const history = await callTool("uvcs_file_history", { filePath: smokeFile });
+  const revisionDiff = await callTool("uvcs_revision_diff", { filePath: smokeFile, changeset: `cs:${secondChangeset}` });
+  const labels = await callTool("uvcs_label_list", { nameLike: label });
+
   await prepareConfirm("uvcs_switch_workspace", { target: branch1 });
+  const mergePreview = await callTool("uvcs_merge_preview", { source: branch2 });
   await prepareConfirm("uvcs_merge", { source: branch2 });
   const mergeCheckin = await prepareConfirm("uvcs_checkin", {
     message: `UVCS MCP E2E merge checkin ${stamp}`
   });
   const mergeChangeset = parseChangeset(mergeCheckin.stdout);
+
+  // After the merge, on the first branch: checkout, release, and a path-scoped checkin that leaves a private file alone.
+  await prepareConfirm("uvcs_checkout", { paths: [smokeFile] });
+  const released = await prepareConfirm("uvcs_release_checkout", { paths: [smokeFile] });
+  if (released.released.length !== 1) throw new Error(`Unchanged checkout was not released: ${JSON.stringify(released)}`);
+  await prepareConfirm("uvcs_checkout", { paths: [smokeFile] });
+  await fs.appendFile(absoluteSmokeFile, `UVCS MCP E2E checked-out edit ${stamp}\n`, "utf8");
+  const kept = await prepareConfirm("uvcs_release_checkout", { paths: [smokeFile] });
+  if (kept.stillCheckedOut.length !== 1) throw new Error(`Modified checkout was released: ${JSON.stringify(kept)}`);
+  const privateFile = path.join(absoluteSmokeDir, `${stamp}-private.txt`);
+  await fs.writeFile(privateFile, "private\n", "utf8");
+  const scopedCheckin = await prepareConfirm("uvcs_checkin", {
+    message: `UVCS MCP E2E scoped checkin ${stamp}`,
+    paths: [smokeFile]
+  });
+  const scopedChangeset = parseChangeset(scopedCheckin.stdout);
+  await fs.rm(privateFile);
+
 
   await prepareConfirm("uvcs_switch_workspace", { target: "/main" });
   const finalStatus = await callTool("uvcs_workspace_status", {});
@@ -117,6 +141,12 @@ try {
     firstChangeset,
     secondChangeset,
     mergeChangeset,
+    scopedChangeset,
+    secondDiffCount: secondDiff.count,
+    historyCount: history.count,
+    revisionDiffChange: revisionDiff.change,
+    labelCount: labels.count,
+    mergePreview: { conflicts: mergePreview.conflictCount, changes: mergePreview.changeCount },
     finalStatus: finalStatus.stdout
   }, null, 2) + "\n");
 } finally {

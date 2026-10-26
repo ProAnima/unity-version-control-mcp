@@ -9,7 +9,7 @@ All settings are listed in [Configuration](configuration.md).
 ## Modes
 
 - `readonly` (default): status, pending changes, branch, locks, diff, analytics, planning, diagnostics, and doctor tools.
-- `standard`: also enables the prepare/confirm write tools: update, add, path-scoped undo, branch create, label create, switch, merge, checkin, and style init.
+- `standard`: also enables the prepare/confirm write tools: update, add, path-scoped undo, checkout, release checkout, branch create, label create, switch, merge, checkin (all pending changes or selected paths), and style init.
 
 The `guarded` and `standard` safety profiles both run in `standard` mode; `guarded` additionally pins the repository identity. An unrecognized `UVCS_MCP_MODE` value falls back to `readonly` and produces a warning.
 
@@ -22,15 +22,15 @@ Every write uses two calls:
 
 Tokens are random, single-use, bound to one action and one workspace, and expire after `UVCS_TOKEN_TTL_SEC` (default 300 seconds; 120 in the `guarded` profile). Expired tokens are pruned from memory. Refusals use distinct codes: `CONFIRM_TOKEN_INVALID`, `CONFIRM_TOKEN_EXPIRED`, `CONFIRM_TOKEN_ACTION_MISMATCH`, and `CONFIRM_TOKEN_CONTEXT_MISMATCH`.
 
-Switch, merge, undo, and checkin confirmations recompute a fingerprint of the workspace status header (the current changeset) and the tracked pending changes after consuming the token. Update confirmation rechecks the current branch line. If the state changed after prepare, confirmation is refused with `WORKSPACE_CHANGED_SINCE_PREPARE` and a new prepare is required. Private and ignored items are not part of the fingerprint.
+Switch, merge, undo, and checkin confirmations recompute a fingerprint of the workspace status header (the current changeset) and the tracked pending changes after consuming the token. Path-scoped checkin, checkout, and release checkout fingerprint only the status rows of the selected items. Checkin tokens also bind file size and modification time. Merge confirmation re-runs the merge preview and is refused if the source gained changes or conflicts. Update confirmation rechecks the current branch line. If the state changed after prepare, confirmation is refused with `WORKSPACE_CHANGED_SINCE_PREPARE` and a new prepare is required. Private and ignored items are not part of the fingerprint.
 
 The server cannot verify that a person approved a confirm call. It enforces the two-step flow and tells the agent, through tool descriptions, annotations, and server instructions, to show the prepare payload and wait for explicit approval. Configure MCP clients to auto-approve only tools marked `readOnlyHint` and to keep human approval for every `*_confirm` tool.
 
 ### Write scope
 
-- **Checkin** runs `cm checkin --applychanged` and always includes all tracked pending changes in the workspace. It cannot check in a subset. Private and ignored files are not included. `UVCS_CHECKIN_MAX_FILES` (default 20) limits the number of tracked pending changes, and prepare refuses with `NOTHING_TO_CHECKIN` when there are none.
+- **Checkin** runs `cm checkin --applychanged`. Without `paths` it includes all tracked pending changes in the workspace. With `paths` it includes only the selected files and folders, the `.meta` partners of selected assets, and the pending parent folders the change needs (`--all --dependencies`). Private and ignored files are not included. `UVCS_CHECKIN_MAX_FILES` (default 20) limits the number of items checked in (selected items plus dependencies for a path-scoped checkin), and prepare refuses with `NOTHING_TO_CHECKIN` when there is nothing to check in.
 - **Undo** is limited to one relative file or directory; the workspace root is refused with `UNDO_WORKSPACE_ROOT_FORBIDDEN`. UVCS undo is irreversible.
-- **Switch** and **merge** are refused while tracked pending changes exist. Private and ignored files do not block them. A merge result stays pending until a checkin; there is no merge preview.
+- **Switch** and **merge** are refused while tracked pending changes exist. Private and ignored files do not block them. Merge prepare also runs the merge preview and refuses merges with conflicts (`MERGE_HAS_CONFLICTS`), because `--nointeractiveresolution` would leave them unmerged with the merge in progress. A merge result stays pending until a checkin.
 - **Update** prepare reports `pendingChangesCount` and a warning when tracked pending changes exist, because updating over local edits can produce conflicts.
 
 ## MCP tool annotations
@@ -40,10 +40,10 @@ Every tool declares MCP annotations so clients can tell reads from writes:
 | Tools | `readOnlyHint` | `destructiveHint` | `idempotentHint` |
 | --- | --- | --- | --- |
 | Read tools and every `*_prepare` tool | `true` | `false` | `true` |
-| `uvcs_add_confirm`, `uvcs_branch_create_confirm`, `uvcs_label_create_confirm`, `uvcs_style_init_confirm`, `uvcs_checkin_confirm` | `false` | `false` | `false` |
+| `uvcs_add_confirm`, `uvcs_branch_create_confirm`, `uvcs_label_create_confirm`, `uvcs_style_init_confirm`, `uvcs_checkin_confirm`, `uvcs_checkout_confirm`, `uvcs_release_checkout_confirm` | `false` | `false` | `false` |
 | `uvcs_undo_confirm`, `uvcs_update_workspace_confirm`, `uvcs_switch_workspace_confirm`, `uvcs_merge_confirm` | `false` | `true` | `false` |
 
-The server also sends MCP `instructions`: start with `uvcs_setup_status`; prepare, show the payload, and confirm only after explicit user approval; never retry a confirm after `WORKSPACE_CHANGED_SINCE_PREPARE` or `WRITE_INTERRUPTED_STATE_UNKNOWN`; checkin includes all tracked pending changes, so keep Unity assets and their `.meta` files together.
+The server also sends MCP `instructions`: start with `uvcs_setup_status`; prepare, show the payload, and confirm only after explicit user approval; never retry a confirm after `WORKSPACE_CHANGED_SINCE_PREPARE` or `WRITE_INTERRUPTED_STATE_UNKNOWN`; `uvcs_checkin_prepare` without `paths` takes all tracked pending changes, and with `paths` adds Unity `.meta` partners automatically; call `uvcs_locks` and `uvcs_checkout_prepare` before editing shared scenes, prefabs, and binary assets; run `uvcs_merge_preview` before any merge.
 
 ## Input validation
 
@@ -52,6 +52,10 @@ The server also sends MCP `instructions`: start with `uvcs_setup_status`; prepar
 - A path whose workspace-relative form starts with `-` is rejected with `INVALID_PATH`, because `cm` would parse it as an option (for example `cm undo -r`). Paths containing NUL, CR, or LF are rejected with `INVALID_PATH`.
 - Branch and label names use a restricted character set and cannot start with `-`. Changeset specs must be `cs:<number>` and label specs `lb:<name>`.
 - Checkin messages and comments must be single-line.
+- Item paths cannot contain `*` or `?`: `cm` expands wildcards itself, so a wildcard could widen add, undo, checkout, or checkin.
+- A path-scoped checkin token binds the status rows of the selected items and of their pending parent folders, plus the size and modification time of each selected file; a full checkin token binds the size and modification time of every pending file. Editing a file again after prepare (which does not change its `CH` status row) therefore invalidates the token.
+- A path-scoped checkin adds the `.meta` partner of every selected Unity asset under `Assets/` (and the asset of a selected `.meta`), and refuses assets whose `.meta` is still private (`UNITY_META_NOT_ADDED`).
+- `uvcs_release_checkout` runs `cm undo --unchanged`, which cannot discard edits.
 
 ## Workspace and repository allowlists
 
@@ -77,7 +81,8 @@ Client setup always pins `UVCS_ALLOWED_WORKSPACES` to the configured workspace. 
 - When a limit is exceeded, the process is terminated: on Windows the whole process tree with `taskkill /T /F`; on macOS and Linux the `cm` process receives `SIGTERM`, then `SIGKILL` after 2 seconds. The error is reported only after the process has exited (or after a 10-second grace period), so the write lock is not released while `cm` is still running.
 - A mutating command interrupted by a timeout or the output limit returns `WRITE_INTERRUPTED_STATE_UNKNOWN`: the operation may have been partly applied. Do not retry; inspect `uvcs_pending_changes` and `uvcs_branch_info` first.
 - Output is collected as bytes and decoded once, so multi-byte characters are never split. See `UVCS_CM_OUTPUT_ENCODING` in [Configuration](configuration.md).
-- `cm` output in error results is truncated (2,000 characters in the message, 16,384 characters each for stdout and stderr in the details). `uvcs_diff_file` output is truncated at 200,000 characters and marked `truncated: true`.
+- `cm` output in error results is truncated (2,000 characters in the message, 16,384 characters each for stdout and stderr in the details). `uvcs_diff_file` and `uvcs_revision_diff` output is truncated at 200,000 characters and marked `truncated: true`.
+- History tools (`uvcs_changeset_diff`, `uvcs_revision_diff`, `uvcs_file_history`, `uvcs_annotate`, `uvcs_branch_list`, `uvcs_label_list`, `uvcs_merge_preview`) are read-only in every profile. Object specs are validated (`cs:N`, `lb:NAME`, `sh:N`, or a branch path that cannot start with `-`), `cm diff` never receives an item path (which would open the GUI Diff window), and `uvcs_merge_preview` never passes `--merge`.
 
 ## Cross-process write lock
 

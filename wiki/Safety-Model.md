@@ -27,9 +27,9 @@ Any other value falls back to `readonly` and produces a warning in `uvcs_setup_s
 
 Every write uses a `*_prepare` tool and a matching `*_confirm` tool with a short-lived, single-use token. The agent must show the prepare result and confirm only after the user approves that exact operation. Configure your MCP client to auto-approve only read-only tools: every tool carries MCP annotations, and all `*_confirm` tools are marked as writes (undo, update, switch, and merge as destructive).
 
-Switch, merge, update, undo, and checkin revalidate workspace state after prepare. Multiple MCP processes coordinate writes through a workspace lock file.
+Switch, merge, update, undo, checkout, release checkout, and checkin revalidate workspace state after prepare. Multiple MCP processes coordinate writes through a workspace lock file.
 
-A checkin always includes all tracked pending changes in the workspace. Private and ignored files are not included and do not count toward the checkin limit.
+Without `paths`, a checkin includes all tracked pending changes in the workspace; with `paths`, only the selected files and folders plus the `.meta` partner of every selected Unity asset. Private and ignored files are never included; a new parent folder that a selected item needs is checked in as a dependency and counts toward the limit. Merges with conflicts are refused; resolve them in the UVCS client.
 
 Item paths must stay inside the workspace and cannot start with `-`; branch and label names cannot start with `-` either, so no input can be parsed by `cm` as an option.
 

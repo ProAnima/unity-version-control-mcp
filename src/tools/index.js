@@ -20,8 +20,12 @@ import {
   styleSetupGuide,
   writeStyleConfig
 } from "../services/style.js";
-import { summarizePendingChanges } from "../services/pending.js";
-import { UvcsError, truncateText } from "../backend/errors.js";
+import { fileStateFingerprint, pendingItems, summarizePendingChanges } from "../services/pending.js";
+import { annotateFile, changesetDiff, fileHistory, listBranches, listLabels, normalizeObjectSpec, pendingFileDiff, revisionDiff } from "../services/history.js";
+import { mergePreview } from "../services/merge-preview.js";
+import { planScopedCheckin } from "../services/checkin-scope.js";
+import { parseLocks, planCheckout, planReleaseCheckout, releaseResult } from "../services/checkout.js";
+import { UvcsError } from "../backend/errors.js";
 
 const MAX_DIFF_CHARS = 200_000;
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true };
@@ -60,10 +64,24 @@ export function createTools({ config, backend }) {
       await assertWorkspacePolicy(config, backend);
       return await backend.branchInfo();
     }),
-    tool("uvcs_locks", "List workspace/server locks visible to cm.", {}, async () => {
-      await assertWorkspacePolicy(config, backend);
-      return await backend.locks();
-    }),
+    tool(
+      "uvcs_locks",
+      "List exclusive locks (cm lock list). Without paths, the list covers every repository on the server; pass paths to check specific files in this workspace.",
+      {
+        paths: pathListSchema("Optional files relative to UVCS_WORKSPACE to check for locks."),
+        scope: {
+          type: "string",
+          enum: ["all", "user", "workspace"],
+          description: "all (default), user (locks taken by the current user), or workspace (locks taken from this workspace)."
+        }
+      },
+      async ({ paths, scope }) => {
+        await assertWorkspacePolicy(config, backend);
+        const safePaths = (paths ?? []).map((item) => assertRelativeWorkspacePath(config, item));
+        const result = await backend.locks({ paths: safePaths, scope: scope ?? "all" });
+        return result.rows ? { ...result, locks: parseLocks(result.stdout) } : result;
+      }
+    ),
     tool("uvcs_unity_meta_diagnostics", "Detect common Unity asset/.meta mismatches in the workspace.", {}, async () => {
       await assertWorkspacePolicy(config, backend);
       return await unityMetaDiagnostics(config.workspace);
@@ -203,25 +221,241 @@ export function createTools({ config, backend }) {
     ),
     tool(
       "uvcs_diff_file",
-      `Return cm diff output for a file inside the workspace. Output longer than ${MAX_DIFF_CHARS} characters is truncated.`,
+      `Return a unified line diff of one pending file: the revision loaded in the workspace against the file on disk. Output longer than ${MAX_DIFF_CHARS} characters is truncated. Read-only.`,
+      {
+        filePath: {
+          type: "string",
+          description: "Path relative to UVCS_WORKSPACE of a file with a pending change."
+        },
+        context: {
+          type: "integer",
+          minimum: 0,
+          maximum: 20,
+          description: "Unchanged lines around each change, from 0 to 20. Default: 3."
+        }
+      },
+      async ({ filePath, context }) => {
+        await assertWorkspacePolicy(config, backend);
+        const safePath = assertRelativeWorkspacePath(config, filePath);
+        return await pendingFileDiff({
+          backend,
+          workspace: config.workspace,
+          filePath: safePath,
+          context: context ?? 3,
+          maxChars: MAX_DIFF_CHARS
+        });
+      },
+      ["filePath"]
+    ),
+    tool(
+      "uvcs_changeset_diff",
+      "List the items added, changed, moved, or deleted in a changeset, label, shelve, or branch, or between two changesets/labels, with Unity .meta pairing warnings. Read-only.",
+      {
+        source: {
+          type: "string",
+          description: "What to inspect: cs:123 (that changeset), lb:LABEL, sh:12, or a branch such as /main/task (all changes made on the branch)."
+        },
+        compareTo: {
+          type: "string",
+          description: "Optional second changeset, label, or shelve (cs:130, lb:LABEL, sh:12). When set, source is the older side. Not allowed with a branch source."
+        },
+        maxItems: {
+          type: "integer",
+          minimum: 1,
+          maximum: 5000,
+          description: "Maximum items to return, from 1 to 5000. Default: 500. Counts always cover every item."
+        }
+      },
+      async ({ source, compareTo, maxItems }) => {
+        await assertWorkspacePolicy(config, backend);
+        return await changesetDiff({ backend, source, compareTo, maxItems: maxItems ?? 500 });
+      },
+      ["source"]
+    ),
+    tool(
+      "uvcs_revision_diff",
+      `Return a unified line diff of one text file between two revisions, or between a revision and the workspace copy. Pass changeset to see what that changeset changed in the file. Output longer than ${MAX_DIFF_CHARS} characters is truncated. Read-only.`,
+      {
+        filePath: {
+          type: "string",
+          description: "Path relative to UVCS_WORKSPACE, for example Assets/Scripts/Player.cs."
+        },
+        changeset: {
+          type: "string",
+          description: "Changeset spec such as cs:123. Compares the file in that changeset with its parent changeset. Do not combine with from/to."
+        },
+        from: {
+          type: "string",
+          description: "Older side: cs:123, lb:LABEL, or a branch such as /main (latest revision on it)."
+        },
+        to: {
+          type: "string",
+          description: "Newer side: cs:130, lb:LABEL, or a branch. Omit to compare with the file in the workspace."
+        },
+        context: {
+          type: "integer",
+          minimum: 0,
+          maximum: 20,
+          description: "Unchanged lines around each change, from 0 to 20. Default: 3."
+        }
+      },
+      async ({ filePath, changeset, from, to, context }) => {
+        await assertWorkspacePolicy(config, backend);
+        const safePath = assertRelativeWorkspacePath(config, filePath);
+        return await revisionDiff({
+          backend,
+          workspace: config.workspace,
+          filePath: safePath,
+          changeset,
+          from,
+          to,
+          context: context ?? 3,
+          maxChars: MAX_DIFF_CHARS
+        });
+      },
+      ["filePath"]
+    ),
+    tool(
+      "uvcs_file_history",
+      "List the revisions of a file or directory, newest first, with changeset, branch, date, owner, and comment. Dates use the cm client locale format (cm history has no date format option). Read-only.",
       {
         filePath: {
           type: "string",
           description: "Path relative to UVCS_WORKSPACE."
+        },
+        maxResults: {
+          type: "integer",
+          minimum: 1,
+          maximum: 500,
+          description: "Maximum revisions to return, from 1 to 500. Default: 50."
         }
       },
-      async ({ filePath }) => {
+      async ({ filePath, maxResults }) => {
         await assertWorkspacePolicy(config, backend);
         const safePath = assertRelativeWorkspacePath(config, filePath);
-        const result = await backend.diffFile(safePath);
-        const stdout = String(result.stdout ?? "");
-        return {
-          ...result,
-          stdout: truncateText(stdout, MAX_DIFF_CHARS),
-          truncated: stdout.length > MAX_DIFF_CHARS
-        };
+        return await fileHistory({ backend, filePath: safePath, maxResults: maxResults ?? 50 });
       },
       ["filePath"]
+    ),
+    tool(
+      "uvcs_annotate",
+      "Show who last changed each line of a text file and in which changeset (blame). Binary files cannot be annotated. Read-only.",
+      {
+        filePath: {
+          type: "string",
+          description: "Path relative to UVCS_WORKSPACE."
+        },
+        revision: {
+          type: "string",
+          description: "Optional cs:123, lb:LABEL, or branch to annotate instead of the workspace revision."
+        },
+        startLine: {
+          type: "integer",
+          minimum: 1,
+          description: "First line to return. Default: 1."
+        },
+        maxLines: {
+          type: "integer",
+          minimum: 1,
+          maximum: 5000,
+          description: "Maximum lines to return, from 1 to 5000. Default: 500."
+        }
+      },
+      async ({ filePath, revision, startLine, maxLines }) => {
+        await assertWorkspacePolicy(config, backend);
+        const safePath = assertRelativeWorkspacePath(config, filePath);
+        return await annotateFile({ backend, filePath: safePath, revision, startLine: startLine ?? 1, maxLines: maxLines ?? 500 });
+      },
+      ["filePath"]
+    ),
+    tool(
+      "uvcs_branch_list",
+      "List branches, newest first, with owner, parent branch, head changeset, and comment. Read-only.",
+      {
+        nameLike: {
+          type: "string",
+          description: "Optional substring of the branch name, for example task or release."
+        },
+        owner: {
+          type: "string",
+          description: "Optional branch owner."
+        },
+        since: {
+          type: "string",
+          description: "Optional creation date lower bound in YYYY-MM-DD format."
+        },
+        parent: {
+          type: "string",
+          description: "Optional parent branch, for example /main, to list its child branches."
+        },
+        maxResults: {
+          type: "integer",
+          minimum: 1,
+          maximum: 500,
+          description: "Maximum branches to return, from 1 to 500. Default: 50."
+        }
+      },
+      async (args) => {
+        await assertWorkspacePolicy(config, backend);
+        return await listBranches({ backend, ...args, maxResults: args.maxResults ?? 50 });
+      }
+    ),
+    tool(
+      "uvcs_label_list",
+      "List labels, newest first, with labeled changeset, branch, owner, and comment. Read-only.",
+      {
+        nameLike: {
+          type: "string",
+          description: "Optional substring of the label name, for example build or RELEASE."
+        },
+        owner: {
+          type: "string",
+          description: "Optional label owner."
+        },
+        since: {
+          type: "string",
+          description: "Optional creation date lower bound in YYYY-MM-DD format."
+        },
+        branch: {
+          type: "string",
+          description: "Optional branch the labeled changeset belongs to, for example /main."
+        },
+        maxResults: {
+          type: "integer",
+          minimum: 1,
+          maximum: 500,
+          description: "Maximum labels to return, from 1 to 500. Default: 50."
+        }
+      },
+      async (args) => {
+        await assertWorkspacePolicy(config, backend);
+        return await listLabels({ backend, ...args, maxResults: args.maxResults ?? 50 });
+      }
+    ),
+    tool(
+      "uvcs_merge_preview",
+      "Preview a merge without changing anything: files that would be taken from the source, items added/moved/deleted, and conflicts. Without destination the target is the workspace branch; with destination the preview is computed on the server for that branch. Read-only.",
+      {
+        source: {
+          type: "string",
+          description: "Merge source: a branch such as /main/task, cs:94, lb:LABEL, or sh:12."
+        },
+        destination: {
+          type: "string",
+          description: "Optional destination branch such as /main. Omit to preview a merge into the current workspace."
+        },
+        maxItems: {
+          type: "integer",
+          minimum: 1,
+          maximum: 5000,
+          description: "Maximum number of conflicts, and separately of changes, to return, from 1 to 5000. Default: 300. Counts always cover everything."
+        }
+      },
+      async ({ source, destination, maxItems }) => {
+        await assertWorkspacePolicy(config, backend);
+        return await mergePreview({ backend, source, destination, maxItems: maxItems ?? 300 });
+      },
+      ["source"]
     ),
     ...prepareConfirmTool({
       config,
@@ -524,7 +758,7 @@ export function createTools({ config, backend }) {
       config,
       backend,
       name: "uvcs_merge",
-      description: "Merge a branch/changeset/label into the current workspace branch. Refused while tracked pending changes exist; the merge result stays pending until a checkin. Requires prepare/confirm.",
+      description: "Merge a branch/changeset/label into the current workspace branch. Refused while tracked pending changes exist or when the merge has conflicts (resolve those in the UVCS client); the merge result stays pending until a checkin. Requires prepare/confirm.",
       destructive: true,
       properties: {
         source: {
@@ -552,29 +786,98 @@ export function createTools({ config, backend }) {
             details: { pendingChangesCount: pending.trackedCount, pendingChanges: status.stdout }
           });
         }
-        return { source, comment, statusFingerprint: pending.fingerprint };
+        // The merge runs with exactly the spec that was previewed.
+        const sourceSpec = normalizeObjectSpec(source, "source");
+        const preview = await assertMergeable(backend, sourceSpec);
+        return { source: sourceSpec, comment, changeCount: preview.changeCount, statusFingerprint: pending.fingerprint };
       },
       revalidate: async (payload) => {
         const status = await backend.pendingChanges();
         if (summarizePendingChanges(status.stdout).fingerprint !== payload.statusFingerprint) {
           throw workspaceChangedError("pending changes changed after merge preparation");
         }
+        // New changesets on the source can bring conflicts after prepare.
+        const preview = await assertMergeable(backend, payload.source);
+        if (preview.changeCount !== payload.changeCount) {
+          throw workspaceChangedError("the merge source changed after merge preparation");
+        }
       },
       confirm: async (payload) => await backend.merge(payload)
     }),
+    ...prepareConfirmTool({
+      config,
+      backend,
+      name: "uvcs_checkout",
+      description: "Check out files before editing them. When the server has a lock rule for them (lock.conf), this takes the exclusive lock so nobody else can check them out or check in changes to them, which is how teams protect scenes, prefabs, and other binary assets. Files locked by someone else are refused. Requires prepare/confirm.",
+      destructive: false,
+      properties: {
+        paths: pathListSchema("Files relative to UVCS_WORKSPACE to check out, for example Assets/Scenes/Main.unity.")
+      },
+      required: ["paths"],
+      action: "checkout",
+      confirmPhrase: "confirm uvcs checkout",
+      prepare: async ({ paths }) => {
+        await assertWorkspacePolicy(config, backend);
+        assertStandardMode(config);
+        const safePaths = paths.map((item) => assertRelativeWorkspacePath(config, item));
+        const plan = await planCheckout({ backend, workspace: config.workspace, paths: safePaths });
+        return { paths: plan.paths, alreadyCheckedOut: plan.alreadyCheckedOut, statusFingerprint: plan.fingerprint };
+      },
+      revalidate: async (payload) => {
+        const plan = await planCheckout({ backend, workspace: config.workspace, paths: payload.paths });
+        if (plan.fingerprint !== payload.statusFingerprint) {
+          throw workspaceChangedError("the pending status of the files changed after checkout preparation");
+        }
+      },
+      confirm: async ({ paths }) => await backend.checkout(paths)
+    }),
+    ...prepareConfirmTool({
+      config,
+      backend,
+      name: "uvcs_release_checkout",
+      description: "Release checkouts (and their locks) of files whose content did not change. Modified files keep their checkout and their edits; check those in or undo them. Requires prepare/confirm.",
+      destructive: false,
+      properties: {
+        paths: pathListSchema("Checked-out files relative to UVCS_WORKSPACE.")
+      },
+      required: ["paths"],
+      action: "release_checkout",
+      confirmPhrase: "confirm uvcs release checkout",
+      prepare: async ({ paths }) => {
+        await assertWorkspacePolicy(config, backend);
+        assertStandardMode(config);
+        const safePaths = paths.map((item) => assertRelativeWorkspacePath(config, item));
+        const plan = await planReleaseCheckout({ backend, workspace: config.workspace, paths: safePaths });
+        return { paths: plan.paths, statusFingerprint: plan.fingerprint };
+      },
+      revalidate: async (payload) => {
+        const plan = await planReleaseCheckout({ backend, workspace: config.workspace, paths: payload.paths });
+        if (plan.fingerprint !== payload.statusFingerprint) {
+          throw workspaceChangedError("the pending status of the files changed after release preparation");
+        }
+      },
+      confirm: async ({ paths }) => await releaseResult({
+        backend,
+        workspace: config.workspace,
+        paths,
+        result: await backend.releaseCheckout(paths)
+      })
+    }),
     tool(
       "uvcs_checkin_prepare",
-      "Prepare a checkin of ALL tracked pending changes in the workspace (private files are not included) and return a short-lived confirmation token. Review the returned pendingChanges with the user before confirming.",
+      "Prepare a checkin and return a short-lived confirmation token. Without paths it takes ALL tracked pending changes in the workspace; with paths only the changes at or below those paths, plus the Unity .meta partner of every selected asset. Private files are never included, except a new parent folder that a selected item needs (listed in dependencies). Review the returned changes with the user before confirming.",
       {
         message: {
           type: "string",
           description: "Checkin comment."
-        }
+        },
+        paths: pathListSchema("Optional files or directories relative to UVCS_WORKSPACE to check in instead of every pending change.")
       },
-      async ({ message }) => {
+      async ({ message, paths }) => {
         await assertWorkspacePolicy(config, backend);
         assertStandardMode(config);
         assertCheckinMessage(message);
+        if (paths !== undefined) return await prepareScopedCheckin({ config, backend, message, paths });
         const status = await backend.pendingChanges();
         const pending = summarizePendingChanges(status.stdout);
         const changedFiles = pending.trackedCount;
@@ -596,7 +899,8 @@ export function createTools({ config, backend }) {
           action: "checkin",
           payload: {
             message,
-            statusFingerprint: pending.fingerprint
+            statusFingerprint: pending.fingerprint,
+            fileState: await fileStateFingerprint(config.workspace, trackedItems(config, status.stdout))
           },
           ttlSec: config.tokenTtlSec,
           context: config.workspace
@@ -614,7 +918,7 @@ export function createTools({ config, backend }) {
     ),
     tool(
       "uvcs_checkin_confirm",
-      `Run a prepared checkin of all tracked pending changes. ${CONFIRM_GUIDANCE}`,
+      `Run a prepared checkin (all tracked pending changes, or the selected paths). ${CONFIRM_GUIDANCE}`,
       {
         token: {
           type: "string",
@@ -632,11 +936,28 @@ export function createTools({ config, backend }) {
           throw new UvcsError("Invalid confirmPhrase", { code: "INVALID_CONFIRM_PHRASE" });
         }
         const payload = consumeConfirmToken({ token, action: "checkin", context: config.workspace });
+        if (payload.paths) {
+          const plan = planScopedCheckin({
+            statusText: (await backend.pendingChanges()).stdout,
+            workspace: config.workspace,
+            paths: payload.requestedPaths
+          });
+          if (plan.fingerprint !== payload.statusFingerprint || plan.paths.join("\n") !== payload.paths.join("\n")) {
+            throw workspaceChangedError("pending changes under the selected paths changed after checkin preparation");
+          }
+          if (await fileStateFingerprint(config.workspace, [...plan.items, ...plan.dependencies]) !== payload.fileState) {
+            throw workspaceChangedError("files under the selected paths were edited after checkin preparation");
+          }
+          return await backend.checkin(payload.message, payload.paths, { dependencies: payload.dependencies });
+        }
         const status = await backend.pendingChanges();
         const pending = summarizePendingChanges(status.stdout);
         const changedFiles = pending.trackedCount;
         if (pending.fingerprint !== payload.statusFingerprint) {
           throw workspaceChangedError("pending changes changed after checkin preparation");
+        }
+        if (await fileStateFingerprint(config.workspace, trackedItems(config, status.stdout)) !== payload.fileState) {
+          throw workspaceChangedError("pending files were edited after checkin preparation");
         }
         if (changedFiles > config.checkinMaxFiles) {
           throw new UvcsError(`Refusing checkin: ${changedFiles} files exceed UVCS_CHECKIN_MAX_FILES=${config.checkinMaxFiles}`, {
@@ -660,6 +981,78 @@ export function createTools({ config, backend }) {
       if (!definition) throw new UvcsError(`Unknown tool: ${name}`, { code: "UNKNOWN_TOOL" });
       return await definition.handler(args);
     }
+  };
+}
+
+const MAX_PATHS = 200;
+
+function pathListSchema(description) {
+  return {
+    type: "array",
+    items: { type: "string" },
+    minItems: 1,
+    maxItems: MAX_PATHS,
+    description
+  };
+}
+
+// cm merge --nointeractiveresolution leaves conflicting items unmerged and the
+// merge in progress, which blocks every later checkin, so conflicts are refused.
+async function assertMergeable(backend, sourceSpec) {
+  const preview = await mergePreview({ backend, source: sourceSpec });
+  if (preview.alreadyMerged) {
+    throw new UvcsError(`${sourceSpec} is already merged into this workspace branch`, { code: "NOTHING_TO_MERGE" });
+  }
+  if (preview.conflictCount > 0) {
+    throw new UvcsError(`Merging ${sourceSpec} has ${preview.conflictCount} conflict(s); resolve this merge in the UVCS client`, {
+      code: "MERGE_HAS_CONFLICTS",
+      details: { conflicts: preview.conflicts }
+    });
+  }
+  return preview;
+}
+
+function trackedItems(config, statusText) {
+  return pendingItems(statusText, config.workspace).filter((item) => item.tracked);
+}
+
+async function prepareScopedCheckin({ config, backend, message, paths }) {
+  const safePaths = paths.map((item) => assertRelativeWorkspacePath(config, item));
+  const status = await backend.pendingChanges();
+  const plan = planScopedCheckin({ statusText: status.stdout, workspace: config.workspace, paths: safePaths });
+  const changedFiles = plan.items.length + plan.dependencies.length;
+  if (changedFiles > config.checkinMaxFiles) {
+    throw new UvcsError(`Refusing checkin prepare: ${changedFiles} files exceed UVCS_CHECKIN_MAX_FILES=${config.checkinMaxFiles}`, {
+      code: "CHECKIN_TOO_LARGE",
+      details: { changedFiles, maxFiles: config.checkinMaxFiles }
+    });
+  }
+  const confirm = createConfirmToken({
+    action: "checkin",
+    payload: {
+      message,
+      paths: plan.paths,
+      requestedPaths: safePaths,
+      dependencies: plan.dependencies.length > 0,
+      statusFingerprint: plan.fingerprint,
+      fileState: await fileStateFingerprint(config.workspace, [...plan.items, ...plan.dependencies])
+    },
+    ttlSec: config.tokenTtlSec,
+    context: config.workspace
+  });
+  return {
+    action: "checkin",
+    confirmPhrase: "confirm uvcs checkin",
+    token: confirm.token,
+    expiresAt: new Date(confirm.expiresAt).toISOString(),
+    scope: "paths",
+    paths: plan.paths,
+    autoIncludedMeta: plan.autoIncludedMeta,
+    changedFiles,
+    changes: plan.items,
+    dependencies: plan.dependencies,
+    unityMetaWarnings: plan.unityMetaWarnings,
+    otherPendingChangesLeft: summarizePendingChanges(status.stdout).trackedCount - plan.items.length - plan.trackedDependencyCount
   };
 }
 

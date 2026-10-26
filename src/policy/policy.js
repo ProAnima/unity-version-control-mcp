@@ -57,6 +57,11 @@ export function assertRelativeWorkspacePath(config, filePath) {
   if (/[\0\r\n]/.test(filePath)) {
     throw new PolicyError("filePath cannot contain control characters", { code: "INVALID_PATH", filePath });
   }
+  // cm expands * and ? itself, so a wildcard could widen add, undo, checkout,
+  // or checkin far beyond the requested item.
+  if (/[*?]/.test(filePath)) {
+    throw new PolicyError("filePath cannot contain wildcards (* or ?); name each item", { code: "INVALID_PATH", filePath });
+  }
 
   const resolved = path.resolve(config.workspace, filePath);
   const workspace = path.resolve(config.workspace);

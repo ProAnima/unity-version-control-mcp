@@ -2,6 +2,7 @@
 import { startServer } from "./server.js";
 import { doctorHelp, runDoctor } from "./cli/doctor.js";
 import { initHelp, runInit } from "./cli/init.js";
+import { runSkill } from "./cli/skill.js";
 
 const [command, ...args] = process.argv.slice(2);
 
@@ -21,6 +22,11 @@ async function main() {
     return;
   }
 
+  if (command === "skill") {
+    await runSkill(args);
+    return;
+  }
+
   if (command === "--help" || command === "-h" || command === "help") {
     process.stdout.write(`UVCS MCP
 
@@ -29,6 +35,7 @@ Usage:
   uvcs-mcp init [options]         Configure MCP clients
   uvcs-mcp init-local [options]   Configure clients to run this git checkout
   uvcs-mcp doctor [options]       Check cm and one workspace, or every workspace in a manifest
+  uvcs-mcp skill install [opts]   Install the agent skill for Claude Code, Codex, Cursor, OpenCode, ...
   uvcs-mcp <command> --help       Show the options of one command
 
 Setup options (init, init-local)

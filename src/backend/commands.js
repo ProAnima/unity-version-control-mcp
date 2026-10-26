@@ -3,6 +3,9 @@ export const MACHINE_READABLE_FLAGS = [
   "--fieldseparator=\u001f"
 ];
 
+// Locale-independent dates for find, annotate, and diff output.
+export const ISO_DATE_FORMAT = "yyyy-MM-ddTHH:mm:ss";
+
 export const CM_COMMANDS = {
   showCommands: {
     args: ["showcommands"],
@@ -53,17 +56,6 @@ export const CM_COMMANDS = {
     mutation: false,
     allowFailure: true
   },
-  locksMachine: {
-    args: ["lock", "list", ...MACHINE_READABLE_FLAGS],
-    requireWorkspace: true,
-    mutation: false,
-    allowFailure: true
-  },
-  locksText: {
-    args: ["lock", "list"],
-    requireWorkspace: true,
-    mutation: false
-  },
   updateMachine: {
     args: ["update", "--noinput", ...MACHINE_READABLE_FLAGS],
     requireWorkspace: true,
@@ -80,8 +72,10 @@ export function findChangesetsCommand({ query, format }) {
   };
 }
 
-export function findBranchesCommand({ query, format }) {
-  const args = ["find", "branch", query, `--format=${format}`, "--nototal"];
+export function findBranchesCommand({ query, format, isoDates = false }) {
+  const args = ["find", "branch", query, `--format=${format}`];
+  if (isoDates) args.push(`--dateformat=${ISO_DATE_FORMAT}`);
+  args.push("--nototal");
   return {
     args,
     requireWorkspace: true,
@@ -89,19 +83,113 @@ export function findBranchesCommand({ query, format }) {
   };
 }
 
-export function diffFileCommand(filePath) {
+export function findLabelsCommand({ query, format }) {
   return {
-    args: ["diff", filePath],
+    args: ["find", "label", query, `--format=${format}`, `--dateformat=${ISO_DATE_FORMAT}`, "--nototal"],
     requireWorkspace: true,
     mutation: false
   };
 }
 
-export function checkinCommand(message) {
+// Without a path argument cm prints the changed items instead of opening the
+// Diff window, so this command never takes an item path.
+export function treeDiffCommand({ source, destination, format }) {
+  const args = ["diff", source];
+  if (destination) args.push(destination);
+  args.push(`--format=${format}`, "--repositorypaths");
   return {
-    args: ["checkin", `-c=${message}`, "--applychanged", ...MACHINE_READABLE_FLAGS],
+    args,
+    requireWorkspace: true,
+    mutation: false
+  };
+}
+
+export function historyCommand({ filePath, format }) {
+  return {
+    args: ["history", filePath, `--format=${format}`],
+    requireWorkspace: true,
+    mutation: false
+  };
+}
+
+export function annotateCommand({ spec, format }) {
+  return {
+    args: ["annotate", spec, `--format=${format}`, `--dateformat=${ISO_DATE_FORMAT}`],
+    requireWorkspace: true,
+    mutation: false
+  };
+}
+
+export function catCommand(revisionSpec) {
+  return {
+    args: ["cat", revisionSpec],
+    requireWorkspace: true,
+    mutation: false,
+    // A missing revision (an added or deleted file) is reported, not thrown.
+    allowFailure: true,
+    trimOutput: false,
+    // File bytes, not console text: UVCS_CM_OUTPUT_ENCODING does not apply.
+    outputEncoding: "auto"
+  };
+}
+
+// Without --merge, cm only reports what a merge would do.
+export function mergePreviewCommand({ source, destination }) {
+  const args = ["merge", source];
+  if (destination) args.push(`--to=${destination}`);
+  args.push(...MACHINE_READABLE_FLAGS);
+  return {
+    args,
+    requireWorkspace: true,
+    mutation: false
+  };
+}
+
+// Without paths cm checks in every tracked pending change. With paths it
+// checks in only those items (recursively for directories); --all adds items
+// deleted or moved locally below them and --applychanged picks up changed
+// files that are not checked out.
+export function checkinCommand(message, paths = [], { dependencies = false } = {}) {
+  const args = ["checkin", ...paths, `-c=${message}`];
+  if (paths.length > 0) args.push("--all");
+  if (dependencies) args.push("--dependencies");
+  args.push("--applychanged", ...MACHINE_READABLE_FLAGS);
+  return {
+    args,
     requireWorkspace: true,
     mutation: true
+  };
+}
+
+// With a lock rule on the server (lock.conf), checkout takes the exclusive lock.
+export function checkoutCommand(paths) {
+  return {
+    args: ["checkout", ...paths, ...MACHINE_READABLE_FLAGS],
+    requireWorkspace: true,
+    mutation: true
+  };
+}
+
+// --unchanged undoes only checkouts whose content did not change, so the lock
+// is released without losing edits; modified files stay checked out.
+export function releaseCheckoutCommand(paths) {
+  return {
+    args: ["undo", ...paths, "--unchanged", ...MACHINE_READABLE_FLAGS],
+    requireWorkspace: true,
+    mutation: true
+  };
+}
+
+export function lockListCommand({ paths = [], scope = "all", machineReadable = true } = {}) {
+  const args = ["lock", "list", ...paths];
+  if (scope === "user") args.push("--onlycurrentuser");
+  if (scope === "workspace") args.push("--onlycurrentworkspace");
+  if (machineReadable) args.push(...MACHINE_READABLE_FLAGS);
+  return {
+    args,
+    requireWorkspace: true,
+    mutation: false,
+    allowFailure: machineReadable
   };
 }
 
