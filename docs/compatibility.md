@@ -25,17 +25,25 @@ The MCP server is server-location agnostic: it works with a workspace that is al
 | pending changes with rev id | `cm status --includeRevId --machinereadable` | Best-effort for newer UVCS clients; falls back when unsupported. |
 | current branch | `cm status` | The first status line contains current branch/workspace context; `cm branch` without a subcommand is not portable across Plastic versions. |
 | workspace identity | `cm wi --machinereadable` | Reads the loaded branch/changeset and `repository@server` from local metadata, so it works offline. Used for repository allowlists and guarded setup when `.plastic/plastic.workspace` has no repository metadata; `cm status --header --nochanges` is the fallback. |
-| locks | `cm lock list --machinereadable` | Falls back to `cm lock list`. |
-| file diff | `cm diff <file>` | Path is constrained to `UVCS_WORKSPACE`. |
+| locks | `cm lock list [<paths>] [--onlycurrentuser \| --onlycurrentworkspace] --machinereadable` | Falls back to plain `cm lock list` for `uvcs_locks`; checkout refuses without machine-readable output. |
+| pending file diff | `cm cat serverpath:/<path>#cs:<loaded>` | `uvcs_diff_file` compares the loaded revision with the file on disk. `cm diff <path>` is not used because it opens the GUI diff tool and waits. |
+| changeset / branch diff | `cm diff <cs\|lb\|sh\|br spec> [<spec>] --format=<fields> --repositorypaths` | Never receives an item path, which would open the Diff window. |
+| revision diff | `cm cat serverpath:/<path>#<spec>` | Both sides are read with `cm cat`; the line diff is computed by the server. |
+| file history | `cm history <path> --format=<fields>` | Dates follow the client locale (`history` has no date format option). |
+| annotate | `cm annotate <path or serverpath#spec> --format=<fields> --dateformat=yyyy-MM-ddTHH:mm:ss` | |
+| branch and label lists | `cm find branch` / `cm find label` with `--format`, `--dateformat`, and `--nototal` | With `--dateformat`, date literals in the query use the same format. |
+| merge preview | `cm merge <source> [--to=<branch>] --machinereadable` | Without `--merge` nothing is merged; `--to` previews a server-side merge into another branch. |
 | update | `cm update --noinput --machinereadable` | Requires prepare/confirm and `standard` mode; `--noinput` prevents interactive hangs. |
-| checkin | `cm checkin -c=<message> --applychanged --machinereadable` | Requires prepare/confirm and `standard` mode. Always includes all tracked pending changes in the workspace; `--applychanged` adds changed items that are not checked out. Private and ignored files are not included. |
+| checkin | `cm checkin [<paths> --all [--dependencies]] -c=<message> --applychanged --machinereadable` | Requires prepare/confirm and `standard` mode. Without paths it includes all tracked pending changes; with paths only those items (recursively for folders), `--all` adds local deletes and moves below them, and `--dependencies` adds pending parent folders. `--applychanged` adds changed items that are not checked out. Private and ignored files are not included. |
+| checkout | `cm checkout <paths> --machinereadable` | Requires prepare/confirm and `standard` mode; takes the exclusive lock when the server's `lock.conf` covers the files. |
+| release checkout | `cm undo <paths> --unchanged --machinereadable` | Requires prepare/confirm and `standard` mode; undoes only checkouts whose content did not change. |
 | add | `cm add -R <path>` | Requires prepare/confirm and `standard` mode. |
 | undo | `cm undo <path> [--recursive] --machinereadable` | Requires prepare/confirm and `standard` mode; one path, never the workspace root. |
 | branch create | `cm branch create <branch> --changeset=<cs> [-c=<comment>]` | Requires prepare/confirm and `standard` mode. Uses `--label=<label>` instead of `--changeset` when created from a label. |
 | label create | `cm label create <label> <cs:N> [-c=<comment>]` | Requires prepare/confirm and `standard` mode. |
 | switch | `cm switch <target>` | Requires prepare/confirm and `standard` mode; refused while tracked pending changes exist. |
-| merge | `cm merge <source> --merge --nointeractiveresolution --machinereadable [-c=<comment>]` | Requires prepare/confirm and `standard` mode; refused while tracked pending changes exist. No preview; the result stays pending until a checkin. |
-| analytics and cleanup helpers | `cm find changeset` / `cm find branch` with `--format` and `--nototal` | Read-only queries built from validated inputs. |
+| merge | `cm merge <source> --merge --nointeractiveresolution --machinereadable [-c=<comment>]` | Requires prepare/confirm and `standard` mode; refused while tracked pending changes exist or when the merge preview reports conflicts (checked at prepare and again at confirm); the result stays pending until a checkin. |
+| analytics and cleanup helpers | `cm find changeset` / `cm find branch` with `--format` and `--nototal` | Read-only queries built from validated inputs; dates are sent as ISO `yyyy-MM-dd`. |
 
 The server does not expose arbitrary `cm` commands.
 
@@ -92,4 +100,6 @@ The Plastic SCM smoke test has validated these operations through MCP tools:
 - branch create from label
 - merge with `--nointeractiveresolution`
 - merge checkin
+- checkout, release of an unchanged and of a modified checkout, and a path-scoped checkin next to a private file
+- read tools on the new changesets: changeset diff, file history, revision diff, label list, and merge preview
 - switch back to `/main`

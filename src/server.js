@@ -20,7 +20,9 @@ const SERVER_INSTRUCTIONS = [
   "Start with uvcs_setup_status to learn the workspace, safety profile, and naming rules.",
   "Every write is two steps: call the *_prepare tool, show its payload to the user, and call the matching *_confirm tool only after the user explicitly approves that exact operation.",
   "Never retry a confirm after WORKSPACE_CHANGED_SINCE_PREPARE or WRITE_INTERRUPTED_STATE_UNKNOWN: inspect uvcs_pending_changes and prepare again.",
-  "Checkin includes all tracked pending changes in the workspace. Keep Unity assets and their .meta files together."
+  "uvcs_checkin_prepare without paths takes all tracked pending changes in the workspace; pass paths to check in only the user's files (Unity .meta partners are added automatically).",
+  "Before editing scenes, prefabs, or binary assets that others may also edit, call uvcs_locks and then uvcs_checkout_prepare.",
+  "To understand history, use uvcs_changeset_diff, uvcs_revision_diff, uvcs_file_history, and uvcs_annotate. Before any merge, run uvcs_merge_preview and show its conflicts to the user; merges with conflicts must be done in the UVCS client."
 ].join(" ");
 
 export async function startServer({ input = process.stdin, output = process.stdout, env = process.env } = {}) {
@@ -135,6 +137,11 @@ function zodFieldFromJsonSchema(schema = {}) {
         break;
       case "boolean":
         field = z.boolean();
+        break;
+      case "array":
+        field = z.array(zodFieldFromJsonSchema(schema.items));
+        if (schema.minItems !== undefined) field = field.min(schema.minItems);
+        if (schema.maxItems !== undefined) field = field.max(schema.maxItems);
         break;
       case "string":
       default:

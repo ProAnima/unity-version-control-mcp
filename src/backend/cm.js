@@ -3,14 +3,22 @@ import path from "node:path";
 import {
   CM_COMMANDS,
   addCommand,
+  annotateCommand,
   branchCreateCommand,
+  catCommand,
   checkinCommand,
-  diffFileCommand,
+  checkoutCommand,
   findBranchesCommand,
   findChangesetsCommand,
+  findLabelsCommand,
+  historyCommand,
   labelCreateCommand,
+  lockListCommand,
   mergeCommand,
+  mergePreviewCommand,
+  releaseCheckoutCommand,
   switchCommand,
+  treeDiffCommand,
   undoCommand
 } from "./commands.js";
 import { runProcess } from "./process-runner.js";
@@ -50,17 +58,16 @@ export function createCmBackend(config) {
         branch: await resolveCurrentBranch(config, selector, firstLine)
       };
     },
-    locks: async () => {
-      const machine = await runCmSpec(config, CM_COMMANDS.locksMachine);
+    locks: async ({ paths = [], scope = "all" } = {}) => {
+      const machine = await runCmSpec(config, lockListCommand({ paths, scope }));
       if (machine.code === 0) {
         return toRawResult(machine, {
           format: "machinereadable",
           rows: parseMachineReadableTable(machine.stdout)
         });
       }
-      return runCmSpec(config, CM_COMMANDS.locksText).then(toRawResult);
+      return runCmSpec(config, lockListCommand({ paths, scope, machineReadable: false })).then(toRawResult);
     },
-    diffFile: (filePath) => runCmSpec(config, diffFileCommand(filePath)).then(toRawResult),
     add: (itemPath) => runCmSpec(config, addCommand(itemPath)).then(toRawResult),
     undo: (payload) => runCmSpec(config, undoCommand(payload)).then(toRawResult),
     createBranch: (payload) => runCmSpec(config, branchCreateCommand(payload)).then(toRawResult),
@@ -68,9 +75,17 @@ export function createCmBackend(config) {
     switchTo: (target) => runCmSpec(config, switchCommand(target)).then(toRawResult),
     merge: (payload) => runCmSpec(config, mergeCommand(payload)).then(toRawResult),
     update: () => runCmSpec(config, CM_COMMANDS.updateMachine).then(toRawResult),
-    checkin: (message) => runCmSpec(config, checkinCommand(message)).then(toRawResult),
+    checkin: (message, paths, options) => runCmSpec(config, checkinCommand(message, paths, options)).then(toRawResult),
+    checkout: (paths) => runCmSpec(config, checkoutCommand(paths)).then(toRawResult),
+    releaseCheckout: (paths) => runCmSpec(config, releaseCheckoutCommand(paths)).then(toRawResult),
     findBranches: (payload) => runCmSpec(config, findBranchesCommand(payload)).then(toRawResult),
     findChangesets: (payload) => runCmSpec(config, findChangesetsCommand(payload)).then(toRawResult),
+    findLabels: (payload) => runCmSpec(config, findLabelsCommand(payload)).then(toRawResult),
+    treeDiff: (payload) => runCmSpec(config, treeDiffCommand(payload)).then(toRawResult),
+    history: (payload) => runCmSpec(config, historyCommand(payload)).then(toRawResult),
+    annotate: (payload) => runCmSpec(config, annotateCommand(payload)).then(toRawResult),
+    cat: (revisionSpec) => runCmSpec(config, catCommand(revisionSpec)).then(toRawResult),
+    mergePreview: (payload) => runCmSpec(config, mergePreviewCommand(payload)).then(toRawResult),
     version: () => runCmSpec(config, CM_COMMANDS.version).then(toRawResult),
     showCommands: () => runCmSpec(config, CM_COMMANDS.showCommands).then(toRawResult),
     apiHelp: () => runCmSpec(config, CM_COMMANDS.apiHelp).then(toRawResult),
@@ -97,9 +112,10 @@ export async function runCmSpec(config, spec) {
     return await runProcess(config.cmPath, [...(config.cmArgs ?? []), ...spec.args], {
       cwd,
       allowFailure: spec.allowFailure,
+      trimOutput: spec.trimOutput,
       timeoutMs: spec.timeoutMs ?? (spec.mutation ? config.writeTimeoutMs : config.readTimeoutMs),
       maxOutputBytes: config.maxOutputBytes,
-      outputEncoding: config.cmOutputEncoding,
+      outputEncoding: spec.outputEncoding ?? config.cmOutputEncoding,
       env: {
         ...process.env,
         LC_ALL: "C.UTF-8"

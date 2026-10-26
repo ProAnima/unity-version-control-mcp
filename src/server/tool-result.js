@@ -47,7 +47,7 @@ function hintForError(error) {
     case "PATH_OUTSIDE_WORKSPACE":
       return "Pass a path relative to the workspace root that stays inside the workspace.";
     case "INVALID_PATH":
-      return "Pass a plain relative path such as Assets/Scenes/Main.unity. Paths cannot start with '-' or contain control characters.";
+      return "Pass a plain relative path such as Assets/Scenes/Main.unity. Paths cannot start with '-' or contain wildcards or control characters.";
     case "CONFIRM_TOKEN_INVALID":
     case "CONFIRM_TOKEN_EXPIRED":
     case "CONFIRM_TOKEN_ACTION_MISMATCH":
@@ -77,6 +77,12 @@ function hintForError(error) {
       return "Inspect workspace status before retrying. Increase UVCS_READ_TIMEOUT_MS or UVCS_WRITE_TIMEOUT_MS only when the command is expected to take longer.";
     case "PROCESS_OUTPUT_TOO_LARGE":
       return "Narrow the requested status, diff, or analytics scope, or explicitly raise UVCS_MAX_OUTPUT_BYTES.";
+    case "MERGE_HAS_CONFLICTS":
+      return "uvcs_merge cannot resolve conflicts. Show the conflicts to the user and ask them to run this merge in the UVCS client.";
+    case "UNITY_META_NOT_ADDED":
+      return "Add the listed .meta files with uvcs_add_prepare / uvcs_add_confirm, then prepare the checkin again.";
+    case "ITEM_LOCKED":
+      return "Another user or workspace holds the lock. Ask the user to coordinate with the lock owner; only a server administrator can remove someone else's lock.";
     case "INVALID_CHECKIN_MESSAGE":
       return "Provide a non-empty one-line checkin message.";
     default:

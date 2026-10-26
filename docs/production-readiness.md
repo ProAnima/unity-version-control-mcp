@@ -33,8 +33,8 @@ All settings are listed in [Configuration](configuration.md).
 - `guarded` pins both workspace and repository/server identity.
 - Every write requires a short-lived, single-use prepare/confirm token. Tokens are action-scoped and workspace-bound, and expired tokens are pruned.
 - Tools carry MCP annotations: read and prepare tools are read-only; undo, update, switch, and merge confirms are destructive. The server sends instructions that require explicit user approval before every confirm.
-- Switch, merge, update, undo, and checkin revalidate relevant workspace state before execution.
-- Checkin includes all tracked pending changes, bounded by `UVCS_CHECKIN_MAX_FILES`; private and ignored files are excluded from the count and do not block switch or merge.
+- Switch, merge, update, undo, checkout, release checkout, and checkin revalidate relevant workspace state before execution.
+- Checkin includes all tracked pending changes, or only the selected `paths`, bounded by `UVCS_CHECKIN_MAX_FILES`; private and ignored files are excluded from the count and do not block switch or merge.
 - Writes are serialized in-process and across MCP processes; the lock file has a heartbeat, and locks of dead processes are reclaimed.
 - Whole-workspace undo, branch deletion, changeset deletion, repository deletion, repository rename, arbitrary `cm`, and arbitrary shell execution are not exposed.
 - Read/write timeouts and a combined process-output limit are enforced. On a limit the process is terminated (the whole process tree on Windows) before the error is reported, and interrupted writes return `WRITE_INTERRUPTED_STATE_UNKNOWN`.
@@ -83,9 +83,10 @@ After the MCP client restarts, call `uvcs_setup_status` for every target. Confir
 
 ## Known boundaries
 
-- Checkin always includes all tracked pending changes in the workspace. Selecting individual files for a checkin is not supported; keep unrelated work out of the workspace or check it in separately in the UVCS client.
-- There are no checkout or lock tools. `uvcs_locks` lists locks but cannot acquire or release them, so exclusive-checkout workflows for binary assets need the UVCS client.
-- Merge has no preview. `uvcs_merge` merges directly into the workspace with `--nointeractiveresolution`; the result stays pending until a checkin, and conflicts must be resolved in the UVCS client.
+- A path-scoped checkin selects whole files and folders, not hunks inside a file. A folder selection includes everything pending below it.
+- Locks are taken through checkout and released by checkin, `uvcs_release_checkout` (unchanged files only), or `uvcs_undo` (which discards the edits). Removing another user's lock (`cm lock unlock`) is a server-administrator action and is not exposed. Whether a checkout locks a file depends on the server's `lock.conf`.
+- `uvcs_merge` cannot resolve conflicts. `uvcs_merge_prepare` runs the merge preview and refuses merges with conflicts, which must be done in the UVCS client; a clean merge stays pending until a checkin.
+- `uvcs_revision_diff`, `uvcs_diff_file`, and `uvcs_annotate` (with `revision`) map workspace paths to repository paths (`serverpath:/…`), which assumes the workspace root is the repository root. Xlinked subtrees are not resolved.
 - Gluon / partial workspaces are not supported. The server uses full-workspace commands (`cm update`, `cm switch`, `cm checkin`).
 - Cross-repository operations are not atomic.
 - A `cm` process interrupted by a timeout, the output limit, the operating system, or the network can leave the workspace in an intermediate state. The server reports `WRITE_INTERRUPTED_STATE_UNKNOWN` for timeouts and output limits; inspect status before doing anything else.

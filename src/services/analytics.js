@@ -73,7 +73,9 @@ function assertDate(value, name) {
       details: { name, value }
     });
   }
-  return value.replaceAll("-", "/");
+  // cm parses yyyy/MM/dd by locale (e.g. 2026/09/30 fails on dd.MM.yyyy
+  // systems); ISO yyyy-MM-dd is accepted everywhere.
+  return value;
 }
 
 function normalizeBranchForFind(branch) {

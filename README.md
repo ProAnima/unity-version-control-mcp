@@ -144,9 +144,10 @@ See [Clients](docs/clients.md) for file locations.
 - Tool input is validated server-side with strict schemas.
 - Write tools require `UVCS_MCP_MODE=standard`.
 - Every write uses `*_prepare` followed by the matching `*_confirm`, and tools carry MCP annotations so clients can auto-approve reads and require approval for writes.
-- Checkin always includes all tracked pending changes in the workspace; keep Unity assets and their `.meta` files together.
-- Item paths, branch names, and label names that `cm` would read as options (leading `-`) are rejected.
-- Write confirmations are serialized per workspace and across MCP processes, and switch, merge, update, undo, and checkin revalidate workspace state after prepare.
+- Checkin takes all tracked pending changes, or only the given `paths`; a path-scoped checkin adds the `.meta` partner of every selected Unity asset and refuses assets whose `.meta` is still private.
+- Merges with conflicts are refused at prepare and again at confirm, so `uvcs_merge` does not start a merge that the preview reports as conflicting.
+- Item paths, branch names, and label names that `cm` would read as options (leading `-`) are rejected, and item paths cannot contain the wildcards `*` or `?`.
+- Write confirmations are serialized per workspace and across MCP processes, and switch, merge, update, undo, checkout, release checkout, and checkin revalidate workspace state after prepare.
 - `cm` runs without a shell and with stdin closed, under separate read and write timeouts and an output limit.
 - Repository delete, repository rename, arbitrary `cm`, arbitrary shell execution, and raw `cm api` startup are not exposed.
 - Optional JSONL audit logging is available with `UVCS_AUDIT_LOG=/path/to/uvcs-mcp-audit.jsonl`.
@@ -160,6 +161,8 @@ See [Clients](docs/clients.md) for file locations.
 - `uvcs_pending_changes`
 - `uvcs_branch_info`
 - `uvcs_locks`
+- `uvcs_checkout_prepare` / `uvcs_checkout_confirm`
+- `uvcs_release_checkout_prepare` / `uvcs_release_checkout_confirm`
 - `uvcs_unity_meta_diagnostics`
 - `uvcs_style_rules`
 - `uvcs_style_setup_check`
@@ -167,6 +170,13 @@ See [Clients](docs/clients.md) for file locations.
 - `uvcs_name_preview`
 - `uvcs_release_plan`
 - `uvcs_diff_file`
+- `uvcs_changeset_diff`
+- `uvcs_revision_diff`
+- `uvcs_file_history`
+- `uvcs_annotate`
+- `uvcs_branch_list`
+- `uvcs_label_list`
+- `uvcs_merge_preview`
 - `uvcs_cleanup_candidates`
 - `uvcs_branch_safety_report`
 - `uvcs_update_workspace_prepare` / `uvcs_update_workspace_confirm`
@@ -178,6 +188,33 @@ See [Clients](docs/clients.md) for file locations.
 - `uvcs_switch_workspace_prepare` / `uvcs_switch_workspace_confirm`
 - `uvcs_merge_prepare` / `uvcs_merge_confirm`
 - `uvcs_checkin_prepare` / `uvcs_checkin_confirm`
+
+## History, Review, and Merge Preview
+
+Read-only tools answer "what changed" questions in every safety profile:
+
+- `uvcs_changeset_diff` lists items added, changed, moved, or deleted in a changeset (`cs:123`), a branch (`/main/task`), a shelve, or between two changesets or labels, and flags Unity assets added, moved, or deleted without their `.meta` (and the reverse).
+- `uvcs_revision_diff` returns a unified line diff of one file for a changeset, between two revisions, or against the workspace copy.
+- `uvcs_file_history` and `uvcs_annotate` show who changed a file or a line, and when.
+- `uvcs_branch_list` and `uvcs_label_list` find branches and labels by name, owner, date, parent, or branch.
+- `uvcs_merge_preview` reports what a merge would bring and which items conflict, into the workspace or, with `destination`, into any branch on the server, without merging.
+
+## Checkin by Path and Exclusive Checkout
+
+- `uvcs_checkin_prepare` accepts `paths` to check in only the user's files or folders. Every selected Unity asset brings its `.meta` file along, new parent folders that the change needs are listed as `dependencies`, and the token is invalidated if a selected file is edited again before confirm.
+- `uvcs_checkout_prepare` checks files out before editing. When the server has a lock rule for them (`lock.conf`), this takes the exclusive lock that protects scenes, prefabs, and other binary assets; files locked by someone else are refused.
+- `uvcs_release_checkout_prepare` releases checkouts of files whose content did not change. Modified files keep their checkout and their edits until they are checked in.
+- `uvcs_locks` accepts `paths` and a `scope` (`all`, `user`, `workspace`).
+
+## Agent Skill
+
+The package ships an agent skill (`SKILL.md`) that teaches Claude Code, Codex, Cursor, OpenCode, Gemini CLI, and other SKILL.md agents when and how to use these tools, including the prepare/confirm workflow and Unity `.meta` rules:
+
+```bash
+npx -y @proanima/uvcs-mcp@1.3.0 skill install --agent=claude,agents
+```
+
+See [Agent Skill](docs/skill.md) for every agent, project-scope installs, and the marketplace ZIP.
 
 ## Multiple Workspaces
 
@@ -211,6 +248,7 @@ npm run release:check
 npm run smoke:fake
 npm run smoke:fleet
 npm run smoke:pack
+npm run pack:skill
 ```
 
 Run the real Plastic SCM smoke test against a disposable or safe workspace:
@@ -243,6 +281,7 @@ The smoke test creates temporary branches, labels, checkins, and a merge through
 - [Production Readiness](docs/production-readiness.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Rules for Agents](docs/rules-for-agents.md)
+- [Agent Skill](docs/skill.md)
 - [Contributing](CONTRIBUTING.md)
 - [Support](SUPPORT.md)
 - [Wiki Source](wiki/Home.md)

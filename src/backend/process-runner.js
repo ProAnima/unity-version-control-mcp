@@ -81,7 +81,9 @@ export async function runProcess(command, args, options = {}) {
         settle(reject, pendingError);
         return;
       }
-      const decode = (chunks) => decodeProcessOutput(Buffer.concat(chunks), { encoding: options.outputEncoding }).trim();
+      const decodeRaw = (chunks) => decodeProcessOutput(Buffer.concat(chunks), { encoding: options.outputEncoding });
+      // File content (cm cat) keeps its leading and trailing whitespace.
+      const decode = options.trimOutput === false ? decodeRaw : (chunks) => decodeRaw(chunks).trim();
       const result = {
         command,
         args,

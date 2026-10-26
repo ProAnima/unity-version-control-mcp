@@ -12,7 +12,7 @@ test("changeset analytics builds safe find query", () => {
       commentLike: "release",
       limit: 25
     }),
-    "where date >= '2026/01/01' and date <= '2026/01/31' and branch = 'main/release' and owner = 'ian' and comment like '%release%' order by date desc limit 25"
+    "where date >= '2026-01-01' and date <= '2026-01-31' and branch = 'main/release' and owner = 'ian' and comment like '%release%' order by date desc limit 25"
   );
 });
 

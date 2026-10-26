@@ -24,7 +24,10 @@ try {
 
   const tools = await listTools(cli, project);
   if (!tools.includes("uvcs_setup_status")) throw new Error(`Installed server did not list uvcs tools: ${tools.join(", ")}`);
-  process.stdout.write(`Pack smoke OK: ${packed}, ${tools.length} tools\n`);
+
+  const skillPath = run(process.execPath, [cli, "skill", "path"], project).trim();
+  await fs.access(path.join(skillPath, "SKILL.md"));
+  process.stdout.write(`Pack smoke OK: ${packed}, ${tools.length} tools, skill at ${path.relative(project, skillPath)}\n`);
 } finally {
   await fs.rm(temp, { recursive: true, force: true });
 }

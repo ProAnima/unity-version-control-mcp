@@ -39,6 +39,15 @@ test("mcp server lists uvcs tools", async () => {
   assert.equal(toolNames.includes("uvcs_switch_workspace_prepare"), true);
   assert.equal(toolNames.includes("uvcs_undo_prepare"), true);
   assert.equal(toolNames.includes("uvcs_merge_prepare"), true);
+  for (const name of ["uvcs_checkout_prepare", "uvcs_release_checkout_prepare", "uvcs_changeset_diff", "uvcs_merge_preview", "uvcs_label_list"]) {
+    assert.equal(toolNames.includes(name), true, name);
+  }
+
+  const checkin = response.result.tools.find((tool) => tool.name === "uvcs_checkin_prepare");
+  assert.equal(checkin.inputSchema.properties.paths.type, "array");
+  assert.equal(checkin.inputSchema.properties.paths.items.type, "string");
+  assert.equal(checkin.inputSchema.properties.paths.maxItems, 200);
+  assert.deepEqual(checkin.inputSchema.required, ["message"]);
 });
 
 test("mcp tool errors are returned as isError results with hints", async () => {

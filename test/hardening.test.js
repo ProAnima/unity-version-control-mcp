@@ -109,12 +109,33 @@ test("update prepare warns about pending changes", async () => {
   assert.match(prepared.payload.warning, /pending changes/);
 });
 
-test("diff output is truncated to a bounded size", async () => {
-  const backend = { diffFile: async () => ({ ok: true, stdout: "x".repeat(250_000), stderr: "" }) };
-  const tools = createTools({ config: standardConfig({ mode: "readonly" }), backend });
-  const result = await tools.call("uvcs_diff_file", { filePath: "Assets/A.prefab" });
-  assert.equal(result.truncated, true);
-  assert.ok(result.stdout.length < 201_000);
+test("pending file diff never runs cm diff and is truncated to a bounded size", async () => {
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "uvcs-diff-"));
+  try {
+    await fs.mkdir(path.join(workspace, "Assets"));
+    const lines = Array.from({ length: 4_000 }, (_, index) => `line ${index} ${"x".repeat(60)}`);
+    await fs.writeFile(path.join(workspace, "Assets", "A.prefab"), `${lines.join("\n")}\n`);
+    const requested = [];
+    const backend = {
+      pendingChanges: async () => ({
+        stdout: [`STATUS\u001f42\u001frepo\u001fserver`, `CH\u001f${path.join(workspace, "Assets", "A.prefab")}\u001fFalse\u001fNO_MERGES`].join("\n")
+      }),
+      cat: async (spec) => {
+        requested.push(spec);
+        return { ok: true, stdout: "" };
+      }
+    };
+    const tools = createTools({ config: standardConfig({ mode: "readonly", workspace }), backend });
+    const result = await tools.call("uvcs_diff_file", { filePath: "Assets/A.prefab" });
+    assert.deepEqual(requested, ["serverpath:/Assets/A.prefab#cs:42"]);
+    assert.equal(result.status, "CH");
+    assert.equal(result.truncated, true);
+    assert.ok(result.diff.length < 201_000);
+
+    await assert.rejects(() => tools.call("uvcs_diff_file", { filePath: "Assets/B.prefab" }), (error) => error.code === "NO_PENDING_CHANGE");
+  } finally {
+    await fs.rm(workspace, { recursive: true, force: true });
+  }
 });
 
 test("tools carry MCP annotations that separate reads from destructive writes", () => {

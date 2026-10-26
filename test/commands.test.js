@@ -6,7 +6,6 @@ import {
   addCommand,
   branchCreateCommand,
   checkinCommand,
-  diffFileCommand,
   findBranchesCommand,
   findChangesetsCommand,
   labelCreateCommand,
@@ -22,7 +21,6 @@ test("critical cm commands use documented command names and safe argv arrays", (
   assert.deepEqual(CM_COMMANDS.statusHeader.args, ["status", "--header", "--nochanges"]);
   assert.deepEqual(CM_COMMANDS.updateMachine.args, ["update", "--noinput", ...MACHINE_READABLE_FLAGS]);
   assert.deepEqual(checkinCommand("hello").args, ["checkin", "-c=hello", "--applychanged", ...MACHINE_READABLE_FLAGS]);
-  assert.deepEqual(diffFileCommand("Assets/Foo.prefab").args, ["diff", "Assets/Foo.prefab"]);
   assert.deepEqual(addCommand("Assets/Foo.prefab").args, ["add", "-R", "Assets/Foo.prefab"]);
   assert.deepEqual(undoCommand({ itemPath: "Assets/Foo.prefab" }).args, ["undo", "Assets/Foo.prefab", ...MACHINE_READABLE_FLAGS]);
   assert.deepEqual(undoCommand({ itemPath: "Assets/Folder", recursive: true }).args, ["undo", "Assets/Folder", "--recursive", ...MACHINE_READABLE_FLAGS]);

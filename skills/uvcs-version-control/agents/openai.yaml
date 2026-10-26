@@ -1,0 +1,6 @@
+interface:
+  display_name: "Unity Version Control"
+  short_description: "Review, merge, and check in Unity Version Control work"
+  default_prompt: "Use $uvcs-version-control to review what changed on my current Unity Version Control branch."
+policy:
+  allow_implicit_invocation: true

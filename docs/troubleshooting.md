@@ -116,10 +116,22 @@ Run `uvcs_doctor` and check the detected workspace file fields, or compare `dete
 ## Checkin is refused
 
 - `NOTHING_TO_CHECKIN`: there are no tracked pending changes. New files are private until they are added; use `uvcs_add_prepare` / `uvcs_add_confirm` first.
-- `CHECKIN_TOO_LARGE`: the workspace has more tracked pending changes than `UVCS_CHECKIN_MAX_FILES` (default 20). Private and ignored files are not counted.
+- `CHECKIN_TOO_LARGE`: the workspace has more tracked pending changes than `UVCS_CHECKIN_MAX_FILES` (default 20); for a path-scoped checkin, selected items plus parent-folder dependencies. Private and ignored files are not counted.
 - `INVALID_CHECKIN_MESSAGE`: the message must be a non-empty single line.
 
-A checkin always includes all tracked pending changes in the workspace, not a selection. Review `uvcs_pending_changes` before preparing it, and keep each Unity asset and its `.meta` file in the same checkin.
+Without `paths`, a checkin includes all tracked pending changes in the workspace. Pass `paths` to check in a selection; a path-scoped checkin selects whole files and folders. Review `uvcs_pending_changes` before preparing it, and keep each Unity asset and its `.meta` file in the same checkin.
+
+- `UNITY_META_NOT_ADDED`: a selected asset's `.meta` file is still private. Add it with `uvcs_add_prepare` / `uvcs_add_confirm`, then prepare again.
+- `WORKSPACE_CHANGED_SINCE_PREPARE` right after editing a file: the token binds file sizes and modification times, so prepare again after the last edit.
+
+## Merge or checkout is refused
+
+- `MERGE_HAS_CONFLICTS`: the merge preview found conflicts. Run this merge in the UVCS client, where conflicts can be resolved.
+- `NOTHING_TO_MERGE`: the source is already merged into the workspace branch.
+- `ITEM_LOCKED`: another user or workspace holds the lock; ask the lock owner to release it. Only a server administrator can remove someone else's lock.
+- `ITEM_NOT_CONTROLLED`: the file is new (private or added) and not in the repository yet, so there is nothing to lock.
+- `CHECKOUT_FILES_ONLY`: a folder was passed; check out individual files.
+- `LOCK_CHECK_FAILED`: `cm lock list` did not return machine-readable output; check out in the UVCS client or fix the `cm` setup.
 
 ## Confirm is refused
 
@@ -207,7 +219,7 @@ Every tool failure is an `isError` result with `error.code`, `error.details`, an
 | `REPOSITORY_NOT_ALLOWED` | The workspace identity is not in `UVCS_ALLOWED_REPOS`. |
 | `STANDARD_MODE_REQUIRED` | A write tool was called in `readonly` mode. |
 | `PATH_OUTSIDE_WORKSPACE` | The item path resolves outside the workspace. |
-| `INVALID_PATH` | The item path is empty, starts with `-`, or contains control characters. |
+| `INVALID_PATH` | The item path is empty, starts with `-`, contains the wildcards `*` or `?`, or contains control characters. |
 | `UNDO_WORKSPACE_ROOT_FORBIDDEN` | Undo targeted the workspace root. |
 | `CONFIRM_TOKEN_INVALID` | Unknown, already used, or pruned token. |
 | `CONFIRM_TOKEN_EXPIRED` | The token is older than `UVCS_TOKEN_TTL_SEC`. |
@@ -215,7 +227,22 @@ Every tool failure is an `isError` result with `error.code`, `error.details`, an
 | `CONFIRM_TOKEN_CONTEXT_MISMATCH` | The token belongs to another workspace. |
 | `INVALID_CONFIRM_PHRASE` | The confirm phrase does not match exactly. |
 | `WORKSPACE_CHANGED_SINCE_PREPARE` | Workspace state changed between prepare and confirm. |
-| `NOTHING_TO_CHECKIN` | No tracked pending changes. |
+| `NOTHING_TO_CHECKIN` | No tracked pending changes (under the selected paths). |
+| `UNITY_META_NOT_ADDED` | A selected Unity asset's `.meta` file is still private. |
+| `MERGE_HAS_CONFLICTS` | The merge has conflicts; use the UVCS client. |
+| `ITEM_LOCKED` | Another user or workspace holds the lock. |
+| `ITEM_NOT_CONTROLLED` | The file is not in the repository yet. |
+| `CHECKOUT_FILES_ONLY` | A folder was passed to checkout. |
+| `ITEM_NOT_FOUND` | The file does not exist in the workspace. |
+| `ALREADY_CHECKED_OUT`, `NOT_CHECKED_OUT` | The files are already checked out, or are not checked out. |
+| `LOCK_CHECK_FAILED` | Locks could not be read in machine-readable form. |
+| `NOTHING_TO_MERGE` | The merge source is already merged. |
+| `INVALID_OBJECT_SPEC`, `INVALID_DIFF_SPEC` | A changeset, label, shelve, or branch spec, or a combination of them, is not valid. |
+| `REVISION_NOT_FOUND` | The changeset, label, or branch does not exist, or the file exists in neither compared revision. |
+| `REVISION_READ_FAILED` | `cm cat` failed for a reason other than a missing revision. |
+| `NO_PENDING_CHANGE` | `uvcs_diff_file` was called for a file without a tracked pending change. |
+| `WORKSPACE_REVISION_UNKNOWN` | The loaded changeset could not be read from `cm status`. |
+| `INVALID_DATE`, `INVALID_FIND_FILTER` | A date is not `YYYY-MM-DD`, or a filter contains quotes or `%`. |
 | `CHECKIN_TOO_LARGE` | More tracked pending changes than `UVCS_CHECKIN_MAX_FILES`. |
 | `PENDING_CHANGES_BLOCK_SWITCH`, `PENDING_CHANGES_BLOCK_MERGE` | Tracked pending changes exist. |
 | `WRITE_INTERRUPTED_STATE_UNKNOWN` | A mutating `cm` command was terminated; its effect is unknown. |
