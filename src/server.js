@@ -12,7 +12,7 @@ import { auditToolCall } from "./services/audit.js";
 
 const SERVER_INFO = {
   name: "uvcs-mcp",
-  version: "1.3.0"
+  version: "1.4.0"
 };
 
 const SERVER_INSTRUCTIONS = [

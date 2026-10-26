@@ -34,7 +34,7 @@ On native Windows `npx` is the `npx.cmd` shim, which a process cannot be spawned
 | Antigravity, `antigravity-global` | `cmd /c npx` | Not confirmed to resolve `npx.cmd`. |
 | Windsurf / Devin Desktop | `cmd /c npx` | Not confirmed to resolve `npx.cmd`. |
 
-The plain form is `"command": "npx"` with `["-y", "@proanima/uvcs-mcp@1.3.0"]`; the wrapped form is `"command": "cmd"` with `["/c", "npx", "-y", "@proanima/uvcs-mcp@1.3.0"]`. macOS and Linux always use the plain form. If an older client version reports `spawn npx ENOENT`, switch its entry to the wrapped form. Neither form helps when the client cannot see Node.js on its `PATH` (for example with nvm-windows, fnm, or Volta set up only in a shell profile); then put the absolute path to `npx.cmd` in `command` or set `PATH` in `env`.
+The plain form is `"command": "npx"` with `["-y", "@proanima/uvcs-mcp@1.4.0"]`; the wrapped form is `"command": "cmd"` with `["/c", "npx", "-y", "@proanima/uvcs-mcp@1.4.0"]`. macOS and Linux always use the plain form. If an older client version reports `spawn npx ENOENT`, switch its entry to the wrapped form. Neither form helps when the client cannot see Node.js on its `PATH` (for example with nvm-windows, fnm, or Volta set up only in a shell profile); then put the absolute path to `npx.cmd` in `command` or set `PATH` in `env`.
 
 Use the same forms when you write a config by hand or copy a template from `templates/mcp`; the templates use the unversioned package name, so pin the version.
 
@@ -75,7 +75,7 @@ $XDG_CONFIG_HOME/Claude/claude_desktop_config.json (default ~/.config/Claude/cla
 `init` also prints an equivalent command for user scope, to use instead of the project file:
 
 ```bash
-claude mcp add --env UVCS_WORKSPACE=... --env UVCS_MCP_MODE=readonly ... --scope user --transport stdio uvcs -- npx -y @proanima/uvcs-mcp@1.3.0
+claude mcp add --env UVCS_WORKSPACE=... --env UVCS_MCP_MODE=readonly ... --scope user --transport stdio uvcs -- npx -y @proanima/uvcs-mcp@1.4.0
 ```
 
 Copy the printed command rather than this shortened example; it contains every environment variable of the generated entry.

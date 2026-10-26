@@ -1,6 +1,35 @@
 # Security Review
 
-This review records the security posture for the `1.x` release line, updated for `1.3.0`. The operational model is described in [Security Model](security.md).
+This review records the security posture for the `1.x` release line, updated for `1.4.0`. The operational model is described in [Security Model](security.md).
+
+## Changes reviewed for 1.4.0
+
+### Conflicting merges left in progress (fixed)
+
+- **Affected:** `1.3.0` and earlier, `uvcs_merge` in write-enabled workspaces.
+- **Issue:** `cm merge --merge --nointeractiveresolution` leaves conflicting items unmerged and the merge in progress, yet the tool reported success. Every later checkin then failed until the merge was finished or undone in the UVCS client.
+- **Fix:** `uvcs_merge_prepare` runs the merge preview and refuses merges with conflicts (`MERGE_HAS_CONFLICTS`); confirmation runs the preview again and is refused if the source gained changes or conflicts.
+
+### Unreviewed edits in a checkin (fixed)
+
+- **Affected:** `1.3.0` and earlier, `uvcs_checkin`.
+- **Issue:** the confirmation fingerprint covered status rows only. Editing a file that was already changed leaves its `CH` row unchanged, so content edited after prepare was checked in without review.
+- **Fix:** checkin tokens also bind the size and modification time of every file in the checkin.
+
+### GUI diff tool started by `uvcs_diff_file` (fixed)
+
+- **Affected:** `1.3.0` and earlier, `uvcs_diff_file` in every mode.
+- **Issue:** `cm diff <path>` opens the GUI diff tool on the user's desktop and waits for it to close, so the tool hung until the read timeout.
+- **Fix:** the pending diff is computed from `cm cat` of the loaded revision and the file on disk; `cm diff` never receives an item path.
+
+### New surface
+
+- Item paths cannot contain `*` or `?`, which `cm` would expand.
+- Path-scoped checkin, checkout, and release checkout take explicit path lists (1 to 200 entries, each validated like any item path). Empty lists are refused, so they can never turn into a whole-workspace operation.
+- A path-scoped checkin adds only the `.meta` partner files of selected assets and pending parent-folder items (`--dependencies`); a folder's `.meta` never widens the selection to the folder.
+- `uvcs_release_checkout` uses `cm undo --unchanged`, which cannot discard edits.
+- History tools validate changeset, label, shelve, and branch specs (no leading `-`, no spec separators) and quote-free `cm find` literals. Merge preview never passes `--merge`.
+- `zod` was updated to `4.6.7` for an advisory about memory exhaustion while validating oversized constrained collections, which applies to the new array inputs.
 
 ## Findings fixed in 1.3.0
 
@@ -46,7 +75,7 @@ This review records the security posture for the `1.x` release line, updated for
 - Workspace-relative file tools resolve paths against `UVCS_WORKSPACE`.
 - Paths that escape the workspace are rejected with `PATH_OUTSIDE_WORKSPACE`.
 - Workspace paths are canonicalized through the filesystem, including symlink and junction targets, with platform-correct case handling.
-- Paths that would be parsed as `cm` options (leading `-`) or contain control characters are rejected with `INVALID_PATH`.
+- Paths that would be parsed as `cm` options (leading `-`), contain the wildcards `*` or `?`, or contain control characters are rejected with `INVALID_PATH`.
 - Style configuration paths such as `versionFile` must be relative and cannot include `..`.
 - `uvcs_branch_safety_report` and `uvcs_cleanup_candidates` reject branch path segments such as `.` and `..`.
 
@@ -66,8 +95,8 @@ This review records the security posture for the `1.x` release line, updated for
 - MCP tool annotations mark read and prepare tools as read-only and undo, update, switch, and merge confirms as destructive. Clients should keep human approval for every `*_confirm` tool.
 - Confirm steps are serialized per workspace, in-process and through an on-disk lock with a heartbeat.
 - Fleet calls require an explicit workspace selector, and confirmation tokens are workspace-bound.
-- Switch, merge, update, undo, and checkin revalidate workspace state after prepare.
-- Checkin always includes all tracked pending changes in the workspace; `UVCS_CHECKIN_MAX_FILES` bounds that set. Private and ignored items are excluded from the count and from the state fingerprint.
+- Switch, merge, update, undo, checkout, release checkout, and checkin revalidate workspace state after prepare; checkin tokens also bind file sizes and modification times.
+- Checkin includes all tracked pending changes in the workspace, or only the selected paths; `UVCS_CHECKIN_MAX_FILES` bounds that set. Private and ignored items are excluded from the count and from the state fingerprint, except a new parent folder that a selected item needs.
 - Undo is limited to a specific relative path; whole-workspace undo is not exposed.
 - Read and write commands have separate timeouts and bounded output. Interrupted writes are reported as `WRITE_INTERRUPTED_STATE_UNKNOWN`.
 - Repository deletion, repository rename, arbitrary shell execution, arbitrary `cm`, branch deletion, and changeset deletion are not exposed.
@@ -84,12 +113,12 @@ This review records the security posture for the `1.x` release line, updated for
 - `uvcs_doctor`, setup, read, and write tools all enforce configured allowlists.
 - `UVCS_AUDIT_LOG` records tool name, status, duration, timestamp, and error code when available.
 - Audit entries intentionally avoid tool arguments and confirmation tokens.
-- Error results truncate `cm` output, and `uvcs_diff_file` output is capped at 200,000 characters.
+- Error results truncate `cm` output, and `uvcs_diff_file` and `uvcs_revision_diff` output is capped at 200,000 characters.
 
 ## Dependency posture
 
-- Runtime dependencies are pinned to exact versions: `@modelcontextprotocol/sdk` `1.32.1` and `zod` `4.6.5`. No transitive overrides are needed.
-- At the `1.3.0` release, `npm audit` and `npm audit --omit=dev` report 0 vulnerabilities.
+- Runtime dependencies are pinned to exact versions: `@modelcontextprotocol/sdk` `1.32.1` and `zod` `4.6.7`. No transitive overrides are needed.
+- At the `1.4.0` release, `npm audit` and `npm audit --omit=dev` report 0 vulnerabilities.
 - `npm run audit:prod` runs in CI and before publishing.
 - UVCS MCP is stdio-only. The MCP SDK's HTTP server dependencies are installed but not used; any future HTTP transport work requires a separate review.
 - The npm package ships only runtime code, scripts, templates, and documentation; `npm run smoke:pack` installs the packed tarball into a clean project and starts the installed server before every release.

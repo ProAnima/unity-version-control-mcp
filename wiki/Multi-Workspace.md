@@ -3,7 +3,7 @@
 Configure one MCP server for up to 50 named workspaces with a fleet manifest:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.3.0 init --manifest=workspaces.json --client=cursor,codex --print-config
+npx -y @proanima/uvcs-mcp@1.4.0 init --manifest=workspaces.json --client=cursor,codex --print-config
 ```
 
 Start from `templates/fleet/workspaces.example.json`. Manifest keys are listed in [Configuration](https://github.com/ProAnima/unity-version-control-mcp/blob/main/docs/configuration.md#fleet-manifest).

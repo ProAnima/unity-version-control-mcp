@@ -17,7 +17,7 @@ uvcs_doctor
 Or from a terminal:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.3.0 doctor --workspace="D:/Repositories/YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.4.0 doctor --workspace="D:/Repositories/YourWorkspace"
 ```
 
 From a checkout, use `node src/cli.js doctor --workspace="D:/Repositories/YourWorkspace"`.
