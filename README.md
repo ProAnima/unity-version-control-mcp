@@ -123,6 +123,10 @@ On native Windows `npx` is the `npx.cmd` shim. Claude Code, Claude Desktop, Curs
 
 Every environment variable is described in [Configuration](docs/configuration.md).
 
+## MCP Registry
+
+The server is listed in the official [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.ProAnima/uvcs-mcp`. Clients and directories that read the registry can install it from there; it still needs a local `cm` CLI and a workspace path (`UVCS_WORKSPACE`).
+
 ## Supported Clients
 
 - Cursor (project and global)

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { mcpRegistryProblems } from "./mcp-registry.js";
 
 const root = path.resolve(import.meta.dirname, "..");
 const packageJson = readJson("package.json");
@@ -38,6 +39,15 @@ for (const check of checks) {
   if (!text.includes(check.pattern)) {
     fail(`${check.file} does not include expected release marker: ${check.pattern}`);
   }
+}
+
+// The MCP Registry entry must describe exactly the npm package being released.
+const serverProblems = mcpRegistryProblems(readJson("server.json"), packageJson, {
+  configurationText: readText("docs/configuration.md"),
+  fileExists: (relativePath) => fs.existsSync(path.join(root, relativePath))
+});
+if (serverProblems.length > 0) {
+  fail(`server.json is not consistent with package.json:\n${serverProblems.join("\n")}`);
 }
 
 if (!/^(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
