@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 1.4.0 - 2026-10-26
+
+Feature release: history, review, and merge preview tools; checkin of selected paths with Unity `.meta` pairing; exclusive checkout; and an agent skill for Claude Code, Codex, Cursor, OpenCode, and other SKILL.md agents. It also fixes `uvcs_diff_file`, which opened the GUI diff tool, and refuses merges that would stop with conflicts.
+
 ### Added
 
 - `uvcs_changeset_diff`: items added, changed, moved, and deleted in a changeset, label, shelve, or branch, or between two changesets or labels, with counts and Unity `.meta` pairing warnings.
@@ -23,7 +27,7 @@
 ### Fixed
 
 - Checkin confirmation tokens also bind the size and modification time of the pending files. Editing an already changed file again after prepare leaves its status row unchanged, so the edit was previously checked in without review.
-- `uvcs_diff_file` no longer runs `cm diff <path>`, which opens the GUI diff tool and waits until it is closed: the tool hung until the read timeout and could open a window on the user's desktop. It now returns a unified diff of the loaded revision (`cm cat`) against the file on disk, with `status` and `movedFrom`, and accepts `context`.
+- `uvcs_diff_file` no longer runs `cm diff <path>`, which opens the GUI diff tool and waits until it is closed: the tool hung until the read timeout and could open a window on the user's desktop. It now returns a unified diff of the loaded revision (`cm cat`) against the file on disk, with `status` and `movedFrom`, and accepts `context`. The result has a `diff` field instead of the raw `cm` `stdout`, and a file without a tracked pending change returns `NO_PENDING_CHANGE`.
 - `uvcs_changeset_analytics` date filters are sent to `cm find` as ISO `yyyy-MM-dd`. The previous `yyyy/MM/dd` form was parsed by locale and rejected, for example `2026/09/30` on systems with `dd.MM.yyyy` dates.
 
 ## 1.3.0 - 2026-10-07

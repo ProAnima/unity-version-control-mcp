@@ -1,6 +1,6 @@
 # Production Readiness
 
-UVCS MCP `1.3.0` is production-ready for constrained source-control automation in fixed Plastic SCM / Unity Version Control workspaces.
+UVCS MCP `1.4.0` is production-ready for constrained source-control automation in fixed Plastic SCM / Unity Version Control workspaces.
 
 Production-ready means the MCP server provides a bounded command surface, explicit workspace identity, fail-closed write controls, repeatable setup, release-gated dependencies, and tested single- and multi-workspace workflows. It does not make unrelated repositories atomic and does not replace repository backups, branch protection, or human release ownership.
 
@@ -46,13 +46,13 @@ All settings are listed in [Configuration](configuration.md).
 For one workspace:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.3.0 doctor --workspace="D:/Repositories/YourWorkspace"
+npx -y @proanima/uvcs-mcp@1.4.0 doctor --workspace="D:/Repositories/YourWorkspace"
 ```
 
 For a fleet:
 
 ```bash
-npx -y @proanima/uvcs-mcp@1.3.0 doctor --manifest=workspaces.json
+npx -y @proanima/uvcs-mcp@1.4.0 doctor --manifest=workspaces.json
 ```
 
 After the MCP client restarts, call `uvcs_setup_status` for every target. Confirm the workspace path, repository identity, safety profile, write limits, audit destination, configuration warnings, and naming/release rules before edits.
@@ -69,17 +69,18 @@ After the MCP client restarts, call `uvcs_setup_status` for every target. Confir
 - Stop on the first failure and report completed, failed, and untouched workspaces.
 - Keep `.uvcs-mcp/style.json` under review so branch, checkin, label, and release naming remains deterministic.
 
-## Validation evidence for 1.3.0
+## Validation evidence for 1.4.0
 
-- 135 automated tests (`npm test`) at the time of writing, one of them POSIX-only and skipped on Windows; the count changes as tests are added.
+- 169 automated tests (`npm test`) at the time of writing, one of them POSIX-only and skipped on Windows; the count changes as tests are added. Key guards (`.meta` pairing, file-state binding of checkin tokens, merge conflict refusal at prepare and confirm, empty path lists, lock-list fallback, `cm cat` error handling) were checked by mutation: disabling each guard makes a test fail.
 - ESLint and a syntax check of every JavaScript file in `src/` and `scripts/` (`npm run check`).
 - `npm audit` and `npm audit --omit=dev` report 0 vulnerabilities.
 - Release metadata check, including a check for stale `@proanima/uvcs-mcp@<version>` pins in README, docs, wiki, and templates.
 - Packed-tarball smoke test (`npm run smoke:pack`): the package is installed into a clean project and the installed server lists its tools.
-- Single-workspace fake MCP workflow covering branch, switch, add, checkin, label, merge, and final status, against a stateful fake `cm` that reports real pending changes and fails empty checkins.
+- Single-workspace fake MCP workflow covering branch, switch, add, checkin, label, merge, checkout, release checkout, path-scoped checkin, history tools, and final status, against a stateful fake `cm` that reports real pending changes and fails empty checkins.
 - Parallel two-workspace fleet smoke covering explicit routing, independent style rules, branch previews, state, locks, and mutations.
 - CI on Ubuntu, Windows, and macOS with Node.js 22, 24, and 26.
-- Earlier live validation on Plastic SCM `10.0.16.6656` and Unity Version Control `11.x` workspaces; see [Compatibility](compatibility.md).
+- Live validation with `cm` `10.0.16.6656` against a self-hosted server: the Plastic SCM smoke (`npm run smoke:plastic`) on a disposable repository; a scenario of 37 checks covering path-scoped checkins with `.meta` pairing, a local move into a new folder, local deletes, token invalidation after a late edit, checkout and release checkout, a real merge conflict refused at prepare, and server-side merge previews; and read-only history tools on a production repository with Cyrillic comments and branch and label names containing spaces.
+- Not covered live in 1.4.0: exclusive locking through a server `lock.conf` rule (covered by the fake `cm` and unit tests), and `cm` 11.x clients for the new commands. Earlier releases were validated live on Unity Version Control `11.x`; see [Compatibility](compatibility.md).
 
 ## Known boundaries
 
@@ -101,6 +102,6 @@ After the MCP client restarts, call `uvcs_setup_status` for every target. Confir
 - `npm audit` and `npm audit --omit=dev` report zero known vulnerabilities.
 - Single, fleet, and packed-tarball smoke tests pass.
 - The release commit is on `main`.
-- Tag `v1.3.0` points to the release commit and matches the package version (the publish workflow refuses a mismatch).
+- Tag `v1.4.0` points to the release commit and matches the package version (the publish workflow refuses a mismatch).
 - The GitHub Release uses the reviewed release notes.
 - The npm trusted-publishing workflow completes successfully with provenance.
